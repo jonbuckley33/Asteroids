@@ -51,6 +51,28 @@ func NewEntity(shape Polygon, x float64, y float64, angle float64, turnrate floa
 	}
 }
 
+func (ent *Entity) Draw(invertColors bool) {
+	if ent.IsAlive() {
+		gl.LoadIdentity()
+		gl.Begin(gl.POLYGON)
+
+		for v := range ent.Shape.Vectors {
+			if invertColors {
+				ent.Color3d(ent.Shape.Colors[v])
+			} else {
+				gl.Color3d(ent.Shape.Colors[v].R, ent.Shape.Colors[v].G, ent.Shape.Colors[v].B)
+			}
+			ent.GlVertex2d(ent.Shape.Vectors[v])
+		}
+
+		gl.End()
+	}
+}
+
+func (ent *Entity) Color3d(c Color) {
+	gl.Color3d(Colorize(c.R), Colorize(c.G), Colorize(c.B))
+}
+
 func (ent *Entity) GlVertex2d(v Vector) {
 	x, y := v.Rotate(ent.Angle)
 	gl.Vertex2d(ent.PosX+x, ent.PosY+y)
@@ -118,7 +140,7 @@ func (ent *Entity) Update() {
 	ent.PosY = ent.VelocityY*timediff + ent.PosY
 
 	// crude zone clipping
-	// TODO: for now it works, but needs to be updated for seemless clipping..
+	// TODO: for now it works, but needs to be updated for seamless clipping..
 	if ent.PosX > gameWidth {
 		ent.PosX -= gameWidth
 	} else if ent.PosX < 0 {

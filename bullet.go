@@ -4,10 +4,7 @@
 
 package main
 
-import (
-	"github.com/go-gl/gl"
-	glfw "github.com/go-gl/glfw3"
-)
+import glfw "github.com/go-gl/glfw3"
 
 type Bullet struct {
 	Entity
@@ -38,15 +35,7 @@ func NewBullet(x float64, y float64, vX float64, vY float64) *Bullet {
 
 func (bullet *Bullet) Draw() {
 	if bullet.IsAlive() {
-		gl.LoadIdentity()
-		gl.Begin(gl.TRIANGLES)
-
-		for v := range bullet.Shape.Vectors {
-			gl.Color3d(bullet.Shape.Colors[v].R, bullet.Shape.Colors[v].G, bullet.Shape.Colors[v].B)
-			bullet.GlVertex2d(bullet.Shape.Vectors[v])
-		}
-
-		gl.End()
+		bullet.Entity.Draw(false)
 	}
 }
 

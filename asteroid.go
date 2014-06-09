@@ -4,8 +4,6 @@
 
 package main
 
-import "github.com/go-gl/gl"
-
 type Asteroid struct {
 	Entity
 	SizeRatio float64
@@ -25,31 +23,17 @@ func NewAsteroid(x float64, y float64, angle float64, turnrate float64, vX float
 			Vector{-6.0 * size, 2.0 * size},
 		},
 		[]Color{
-			Color{0.4, 0.3, 0.1},
-			Color{0.9, 0.9, 0.4},
-			Color{1, 1, 0.5},
-			Color{0.8, 0.8, 0.2},
-			Color{0.7, 0.7, 0.2},
-			Color{0.5, 0.5, 0.1},
-			Color{0.6, 0.6, 0.1},
-			Color{0.5, 0.5, 0.1},
+			Color{1, 1, 1},
+			Color{1, 0.9, 0.9},
+			Color{0.8, 0.8, 0.9},
+			Color{0.8, 0.8, 0.8},
+			Color{0.9, 0.8, 0.8},
+			Color{0.9, 0.9, 0.9},
+			Color{0.9, 0.9, 0.9},
+			Color{1, 1, 0.9},
 		},
 	}
 	return &Asteroid{*NewEntity(shape, x, y, angle, turnrate, vX, vY, 0, 5), size, lives}
-}
-
-func (ast *Asteroid) Draw() {
-	if ast.IsAlive() {
-		gl.LoadIdentity()
-		gl.Begin(gl.POLYGON)
-
-		for v := range ast.Shape.Vectors {
-			gl.Color3d(ast.Shape.Colors[v].R, ast.Shape.Colors[v].G, ast.Shape.Colors[v].B)
-			ast.GlVertex2d(ast.Shape.Vectors[v])
-		}
-
-		gl.End()
-	}
 }
 
 func (ast *Asteroid) Destroy() {

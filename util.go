@@ -26,6 +26,13 @@ type Color struct {
 	B float64
 }
 
+func Colorize(c float64) float64 {
+	if colorsInverted {
+		c = math.Abs(c - 1)
+	}
+	return c
+}
+
 func RotateVector(v *Vector, angle float64) (float64, float64) {
 	return v.Rotate(angle)
 }

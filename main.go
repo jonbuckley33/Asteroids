@@ -25,9 +25,10 @@ var (
 	gameHeight       float64
 	fieldSize        float64 = 400
 	fullscreen       bool    = false
-	won              bool    = false
+	won              bool    = true
 	gameRunning      bool    = true
 	altTab           bool    = false
+	colorsInverted   bool    = false
 	rng                      = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
@@ -97,6 +98,10 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 	if key == glfw.KeyEnter && action == glfw.Press { //&& mods == glfw.ModAlt {
 		altTab = true
 	}
+
+	if key == glfw.KeyF1 && action == glfw.Press {
+		switchColors()
+	}
 }
 
 func initWindow() (window *glfw.Window, err error) {
@@ -134,7 +139,7 @@ func initWindow() (window *glfw.Window, err error) {
 	window.MakeContextCurrent()
 
 	gl.Init()
-	gl.ClearColor(0.0, 0.0, 0.0, 0.0)
+	gl.ClearColor(gl.GLclampf(Colorize(0)), gl.GLclampf(Colorize(0)), gl.GLclampf(Colorize(0)), 0.0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
 	width, height := window.GetFramebufferSize()
@@ -146,8 +151,15 @@ func initWindow() (window *glfw.Window, err error) {
 
 	gl.Ortho(0, gameWidth, 0, gameHeight, -1.0, 1.0)
 	gl.MatrixMode(gl.MODELVIEW)
+	gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
 
 	return window, nil
+}
+
+func switchColors() {
+	colorsInverted = !colorsInverted
+	gl.ClearColor(gl.GLclampf(Colorize(0)), gl.GLclampf(Colorize(0)), gl.GLclampf(Colorize(0)), 0.0)
+	gl.Clear(gl.COLOR_BUFFER_BIT)
 }
 
 func initGame() *glfw.Window {
@@ -231,14 +243,13 @@ func runGameLoop(window *glfw.Window) {
 		// ---------------------------------------------------------------
 		// draw calls
 		gl.Clear(gl.COLOR_BUFFER_BIT)
-		gl.Color3d(1.0, 1.0, 1.0)
 
-		ship.Draw()
+		ship.Draw(false)
 		for _, bullet := range bullets {
 			bullet.Draw()
 		}
 		for _, asteroid := range asteroids {
-			asteroid.Draw()
+			asteroid.Draw(true)
 		}
 		for _, explosion := range explosions {
 			explosion.Draw()
@@ -260,6 +271,11 @@ func runGameLoop(window *glfw.Window) {
 			}
 
 			altTab = false
+
+			gl.LineWidth(1)
+			if fullscreen {
+				gl.LineWidth(2)
+			}
 		}
 	}
 	window.SetShouldClose(true)

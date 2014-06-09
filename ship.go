@@ -4,11 +4,7 @@
 
 package main
 
-import (
-	"math"
-
-	"github.com/go-gl/gl"
-)
+import "math"
 
 type Ship struct {
 	Entity
@@ -19,18 +15,12 @@ func NewShip(x float64, y float64, angle float64, friction float64) *Ship {
 	shape := Polygon{
 		[]Vector{
 			Vector{0, 5},
-			Vector{0, -4},
 			Vector{4, -5},
-			Vector{0, 5},
-			Vector{0, -4},
 			Vector{-4, -5},
 		},
 		[]Color{
 			Color{0.0, 0.1, 1.0},
 			Color{0.0, 0.1, 0.7},
-			Color{0.0, 0.1, 0.7},
-			Color{0.1, 0.2, 1.0},
-			Color{0.1, 0.2, 0.7},
 			Color{0.1, 0.2, 0.7},
 		},
 	}
@@ -51,20 +41,6 @@ func (ship *Ship) Shoot() *Bullet {
 func (ship *Ship) Update() {
 	ship.Entity.Update()
 	ship.AddFrictionToVelocity(ship.Friction)
-}
-
-func (ship *Ship) Draw() {
-	if ship.IsAlive() {
-		gl.LoadIdentity()
-		gl.Begin(gl.TRIANGLES)
-
-		for v := range ship.Shape.Vectors {
-			gl.Color3d(ship.Shape.Colors[v].R, ship.Shape.Colors[v].G, ship.Shape.Colors[v].B)
-			ship.GlVertex2d(ship.Shape.Vectors[v])
-		}
-
-		gl.End()
-	}
 }
 
 func (ship *Ship) Destroy() {
