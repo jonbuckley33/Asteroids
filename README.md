@@ -23,6 +23,7 @@ OpenGL Asteroids in Golang..
 
 ### Todo
 
+* add pause button to game (color-switching and alt-enter will still be caught and executed while paused.. ?)
 * add statusbar (or HUD?) at top (or bottom?), with inverted background color (displaying lives, score, keybindings, etc..? or display all this without statusbar? as HUD?)
 * add stars / starfield background
 * add score

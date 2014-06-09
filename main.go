@@ -27,7 +27,7 @@ var (
 	fullscreen       bool    = false
 	won              bool    = true
 	gameRunning      bool    = true
-	altTab           bool    = false
+	altEnter         bool    = false
 	colorsInverted   bool    = false
 	rng                      = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
@@ -96,7 +96,7 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 	}
 
 	if key == glfw.KeyEnter && action == glfw.Press { //&& mods == glfw.ModAlt {
-		altTab = true
+		altEnter = true
 	}
 
 	if key == glfw.KeyF1 && action == glfw.Press {
@@ -260,7 +260,7 @@ func runGameLoop(window *glfw.Window) {
 		glfw.PollEvents()
 
 		// switch resolution
-		if altTab {
+		if altEnter {
 			window.Destroy()
 
 			fullscreen = !fullscreen
@@ -270,7 +270,7 @@ func runGameLoop(window *glfw.Window) {
 				panic(err)
 			}
 
-			altTab = false
+			altEnter = false
 
 			gl.LineWidth(1)
 			if fullscreen {
