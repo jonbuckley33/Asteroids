@@ -30,3 +30,6 @@ OpenGL Asteroids in Golang..
 * display score and past highscore at game over (all lives used up)
 * add restart game functionality (backspace?)
 * seemless zone clipping
+* add torpedos with blast radius (propelled timed bombs, they explode after timer, not upon contact (blast radius affects player ship too))
+* add mines (they explode upon contact (even with player ship))
+* add enemy ships (random appearance?)
