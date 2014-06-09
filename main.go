@@ -5,6 +5,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -23,6 +24,10 @@ var (
 	gameWidth        float64
 	gameHeight       float64
 	fieldSize        float64 = 400
+	fullscreen       bool    = false
+	won              bool    = false
+	gameRunning      bool    = true
+	altTab           bool    = false
 	rng                      = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
@@ -38,25 +43,90 @@ func main() {
 	}
 	defer glfw.Terminate()
 
+	var window *glfw.Window = initGame()
+	runGameLoop(window)
+
+	if won {
+		fmt.Println("You won!")
+	} else {
+		fmt.Println("You lost!")
+	}
+}
+
+func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	//fmt.Printf("%v, %v, %v, %v\n", key, scancode, action, mods)
+
+	if key == glfw.KeyEscape && action == glfw.Press {
+		gameRunning = false
+	}
+
+	if key == glfw.KeyLeft {
+		if action == glfw.Press {
+			ship.RotateLeft(true)
+		} else if action == glfw.Release {
+			ship.RotateLeft(false)
+		}
+	} else if key == glfw.KeyRight {
+		if action == glfw.Press {
+			ship.RotateRight(true)
+		} else if action == glfw.Release {
+			ship.RotateRight(false)
+		}
+	}
+
+	if key == glfw.KeyUp {
+		if action == glfw.Press {
+			ship.Accelerate(true)
+		} else if action == glfw.Release {
+			ship.Accelerate(false)
+		}
+	} else if key == glfw.KeyDown {
+		if action == glfw.Press {
+			ship.Decelerate(true)
+		} else if action == glfw.Release {
+			ship.Decelerate(false)
+		}
+	}
+
+	if key == glfw.KeySpace && action == glfw.Press && glfw.GetTime() > lastBulletFired+(1/bulletsPerSecond) {
+		bullet := ship.Shoot()
+		bullets = append(bullets, bullet)
+		lastBulletFired = glfw.GetTime()
+	}
+
+	if key == glfw.KeyEnter && action == glfw.Press { //&& mods == glfw.ModAlt {
+		altTab = true
+	}
+}
+
+func initWindow() (window *glfw.Window, err error) {
 	monitor, err := glfw.GetPrimaryMonitor()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
 	videomode, err := monitor.GetVideoMode()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	if videomode.Height < 480 || videomode.Width < 640 {
-		panic("unsupported resolution!")
+		return nil, errors.New("unsupported resolution!")
 	}
 
-	window, err := glfw.CreateWindow(videomode.Width, videomode.Height, "Golang Asteroids!", monitor, nil)
-	//window, err := glfw.CreateWindow(640, 480, "Golang Asteroids!", nil, nil)
-	if err != nil {
-		panic(err)
+	if fullscreen {
+		glfw.WindowHint(glfw.Decorated, 0)
+		window, err = glfw.CreateWindow(videomode.Width, videomode.Height, "Golang Asteroids!", nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		window.SetPosition(0, 0)
+	} else {
+		glfw.WindowHint(glfw.Decorated, 1)
+		window, err = glfw.CreateWindow(640, 480, "Golang Asteroids!", nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		window.SetPosition(videomode.Width/2-320, videomode.Height/2-240)
 	}
-	defer window.Destroy()
 
 	window.SetKeyCallback(keyCallback)
 	window.MakeContextCurrent()
@@ -76,20 +146,31 @@ func main() {
 	gl.Ortho(0, gameWidth, 0, gameHeight, -1.0, 1.0)
 	gl.MatrixMode(gl.MODELVIEW)
 
-	// init
+	return window, nil
+}
+
+func initGame() *glfw.Window {
+	window, err := initWindow()
+	if err != nil {
+		panic(err)
+	}
+
+	// init ship
 	ship = NewShip(gameWidth/2, gameHeight/2, 0, 0.01)
 	// create a couple of random asteroids
 	for i := float64(1); i <= 7; i++ {
 		CreateAsteroid(2+rng.Float64()*8, 3)
 	}
 
-	for !window.ShouldClose() {
-		// game logic
+	return window
+}
 
+func runGameLoop(window *glfw.Window) {
+	for gameRunning {
 		//check if objects are still alive
 		if !ship.IsAlive() {
-			fmt.Println("You lost!")
-			window.SetShouldClose(true)
+			won = false
+			gameRunning = false
 		}
 
 		var bullets2 []*Bullet
@@ -117,8 +198,7 @@ func main() {
 		explosions = explosions2
 
 		if len(asteroids) == 0 {
-			fmt.Println("You won!")
-			window.SetShouldClose(true)
+			gameRunning = false
 		}
 
 		// update objects
@@ -166,47 +246,20 @@ func main() {
 		gl.Flush()
 		window.SwapBuffers()
 		glfw.PollEvents()
-	}
-}
 
-func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-	//fmt.Printf("%v, %v, %v, %v\n", key, scancode, action, mods)
+		// switch resolution
+		if altTab {
+			window.Destroy()
 
-	if key == glfw.KeyEscape && action == glfw.Press {
-		window.SetShouldClose(true)
-	}
+			fullscreen = !fullscreen
+			var err error
+			window, err = initWindow()
+			if err != nil {
+				panic(err)
+			}
 
-	if key == glfw.KeyLeft {
-		if action == glfw.Press {
-			ship.RotateLeft(true)
-		} else if action == glfw.Release {
-			ship.RotateLeft(false)
-		}
-	} else if key == glfw.KeyRight {
-		if action == glfw.Press {
-			ship.RotateRight(true)
-		} else if action == glfw.Release {
-			ship.RotateRight(false)
+			altTab = false
 		}
 	}
-
-	if key == glfw.KeyUp {
-		if action == glfw.Press {
-			ship.Accelerate(true)
-		} else if action == glfw.Release {
-			ship.Accelerate(false)
-		}
-	} else if key == glfw.KeyDown {
-		if action == glfw.Press {
-			ship.Decelerate(true)
-		} else if action == glfw.Release {
-			ship.Decelerate(false)
-		}
-	}
-
-	if key == glfw.KeySpace && action == glfw.Press && glfw.GetTime() > lastBulletFired+(1/bulletsPerSecond) {
-		bullet := ship.Shoot()
-		bullets = append(bullets, bullet)
-		lastBulletFired = glfw.GetTime()
-	}
+	window.SetShouldClose(true)
 }
