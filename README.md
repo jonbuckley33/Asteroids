@@ -23,6 +23,7 @@ OpenGL Asteroids in Golang..
 
 ### Todo
 
+* add stars / starfield background
 * add score
 * add ship lives (3?)
 * add increasing difficulty after each clearing of all asteroids (+1 asteroid more?)

@@ -112,6 +112,8 @@ func initWindow() (window *glfw.Window, err error) {
 		return nil, errors.New("unsupported resolution!")
 	}
 
+	ratio := float64(videomode.Width) / float64(videomode.Height)
+
 	if fullscreen {
 		glfw.WindowHint(glfw.Decorated, 0)
 		window, err = glfw.CreateWindow(videomode.Width, videomode.Height, "Golang Asteroids!", nil, nil)
@@ -121,7 +123,7 @@ func initWindow() (window *glfw.Window, err error) {
 		window.SetPosition(0, 0)
 	} else {
 		glfw.WindowHint(glfw.Decorated, 1)
-		window, err = glfw.CreateWindow(640, 480, "Golang Asteroids!", nil, nil)
+		window, err = glfw.CreateWindow(int(ratio*480), 480, "Golang Asteroids!", nil, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +138,6 @@ func initWindow() (window *glfw.Window, err error) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
 	width, height := window.GetFramebufferSize()
-	ratio := float64(width) / float64(height)
 	gameWidth = ratio * fieldSize
 	gameHeight = fieldSize
 	gl.Viewport(0, 0, width, height)
