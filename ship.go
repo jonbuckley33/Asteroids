@@ -66,3 +66,8 @@ func (ship *Ship) Draw() {
 		gl.End()
 	}
 }
+
+func (ship *Ship) Destroy() {
+	ship.Entity.Destroy()
+	explosions = append(explosions, NewExplosion(ship.PosX, ship.PosY, 5))
+}

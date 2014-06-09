@@ -17,6 +17,7 @@ var (
 	ship             *Ship
 	bullets          []*Bullet
 	asteroids        []*Asteroid
+	explosions       []*Explosion
 	lastBulletFired  float64 = -1
 	bulletsPerSecond float64 = 5
 	gameWidth        float64
@@ -107,6 +108,14 @@ func main() {
 		}
 		asteroids = asteroids2
 
+		var explosions2 []*Explosion
+		for _, explosion := range explosions {
+			if explosion.IsAlive() {
+				explosions2 = append(explosions2, explosion)
+			}
+		}
+		explosions = explosions2
+
 		if len(asteroids) == 0 {
 			fmt.Println("You won!")
 			window.SetShouldClose(true)
@@ -119,6 +128,9 @@ func main() {
 		}
 		for _, asteroid := range asteroids {
 			asteroid.Update()
+		}
+		for _, explosion := range explosions {
+			explosion.Update()
 		}
 
 		// hit detection
@@ -146,6 +158,9 @@ func main() {
 		}
 		for _, asteroid := range asteroids {
 			asteroid.Draw()
+		}
+		for _, explosion := range explosions {
+			explosion.Draw()
 		}
 
 		gl.Flush()

@@ -58,6 +58,7 @@ func (ast *Asteroid) Destroy() {
 		ast.CreateChild()
 		ast.CreateChild()
 	}
+	explosions = append(explosions, NewExplosion(ast.PosX, ast.PosY, ast.SizeRatio))
 }
 
 func (ast *Asteroid) CreateChild() {
