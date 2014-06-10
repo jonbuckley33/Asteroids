@@ -23,6 +23,7 @@ OpenGL Asteroids in Golang..
 
 ### Todo
 
+* reshape callback for when window gets resized
 * add statusbar (or HUD?) at top (or bottom?), with inverted background color (displaying lives, score, keybindings, etc..? or display all this without statusbar? as HUD?)
 * add stars / starfield background
 * add score
