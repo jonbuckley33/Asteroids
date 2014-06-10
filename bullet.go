@@ -39,6 +39,14 @@ func (bullet *Bullet) Draw() {
 	}
 }
 
+func (bullet *Bullet) Update() {
+	if paused {
+		timediff := (glfw.GetTime() - bullet.Entity.lastUpdatedTime)
+		bullet.MaxLifetime = bullet.MaxLifetime + timediff
+	}
+	bullet.Entity.Update()
+}
+
 func (bullet *Bullet) IsAlive() bool {
 	if glfw.GetTime() > bullet.createdTime+bullet.MaxLifetime {
 		return false

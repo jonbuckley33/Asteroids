@@ -40,7 +40,9 @@ func (ship *Ship) Shoot() *Bullet {
 
 func (ship *Ship) Update() {
 	ship.Entity.Update()
-	ship.AddFrictionToVelocity(ship.Friction)
+	if !paused {
+		ship.AddFrictionToVelocity(ship.Friction)
+	}
 }
 
 func (ship *Ship) Destroy() {

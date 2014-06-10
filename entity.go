@@ -95,61 +95,65 @@ func (ent *Entity) Decelerate(flag bool) {
 }
 
 func (ent *Entity) Update() {
-	timediff := (glfw.GetTime() - ent.lastUpdatedTime) * 500
-	ent.lastUpdatedTime = glfw.GetTime()
-	var rad float64 = ((ent.Angle) * math.Pi) / 180
+	if paused {
+		ent.lastUpdatedTime = glfw.GetTime()
+	} else {
+		timediff := (glfw.GetTime() - ent.lastUpdatedTime) * 500
+		ent.lastUpdatedTime = glfw.GetTime()
+		var rad float64 = ((ent.Angle) * math.Pi) / 180
 
-	// rotation
-	if ent.rotateLeft {
-		ent.Angle = ent.Angle - (ent.TurnRate * timediff)
-		if ent.Angle < 0 {
-			ent.Angle += 360
+		// rotation
+		if ent.rotateLeft {
+			ent.Angle = ent.Angle - (ent.TurnRate * timediff)
+			if ent.Angle < 0 {
+				ent.Angle += 360
+			}
+		} else if ent.rotateRight {
+			ent.Angle = ent.Angle + (ent.TurnRate * timediff)
+			if ent.Angle > 360 {
+				ent.Angle -= 360
+			}
 		}
-	} else if ent.rotateRight {
-		ent.Angle = ent.Angle + (ent.TurnRate * timediff)
-		if ent.Angle > 360 {
-			ent.Angle -= 360
+
+		/*
+			0°		Sin(0), Cos(1)
+			90°		Sin(1), Cos(0)
+			180°	Sin(0), Cos(-1)
+			270°	Sin(-1), Cos(0)
+		*/
+		if ent.accelerate {
+			ent.VelocityX = ent.VelocityX + (ent.AccelerationRate * math.Sin(rad))
+			ent.VelocityY = ent.VelocityY + (ent.AccelerationRate * math.Cos(rad))
+		} else if ent.decelerate {
+			ent.VelocityX = ent.VelocityX - (ent.AccelerationRate * math.Sin(rad))
+			ent.VelocityY = ent.VelocityY - (ent.AccelerationRate * math.Cos(rad))
 		}
-	}
 
-	/*
-		0°		Sin(0), Cos(1)
-		90°		Sin(1), Cos(0)
-		180°	Sin(0), Cos(-1)
-		270°	Sin(-1), Cos(0)
-	*/
-	if ent.accelerate {
-		ent.VelocityX = ent.VelocityX + (ent.AccelerationRate * math.Sin(rad))
-		ent.VelocityY = ent.VelocityY + (ent.AccelerationRate * math.Cos(rad))
-	} else if ent.decelerate {
-		ent.VelocityX = ent.VelocityX - (ent.AccelerationRate * math.Sin(rad))
-		ent.VelocityY = ent.VelocityY - (ent.AccelerationRate * math.Cos(rad))
-	}
+		// max velocity
+		totalVelocity := math.Sqrt(ent.VelocityX*ent.VelocityX + ent.VelocityY*ent.VelocityY)
+		if totalVelocity > ent.MaxVelocity {
+			ent.VelocityX = ent.VelocityX / totalVelocity
+			ent.VelocityY = ent.VelocityY / totalVelocity
+			ent.VelocityX = ent.VelocityX * ent.MaxVelocity
+			ent.VelocityY = ent.VelocityY * ent.MaxVelocity
+		}
 
-	// max velocity
-	totalVelocity := math.Sqrt(ent.VelocityX*ent.VelocityX + ent.VelocityY*ent.VelocityY)
-	if totalVelocity > ent.MaxVelocity {
-		ent.VelocityX = ent.VelocityX / totalVelocity
-		ent.VelocityY = ent.VelocityY / totalVelocity
-		ent.VelocityX = ent.VelocityX * ent.MaxVelocity
-		ent.VelocityY = ent.VelocityY * ent.MaxVelocity
-	}
+		// move
+		ent.PosX = ent.VelocityX*timediff + ent.PosX
+		ent.PosY = ent.VelocityY*timediff + ent.PosY
 
-	// move
-	ent.PosX = ent.VelocityX*timediff + ent.PosX
-	ent.PosY = ent.VelocityY*timediff + ent.PosY
-
-	// crude zone clipping
-	// TODO: for now it works, but needs to be updated for seamless clipping..
-	if ent.PosX > gameWidth {
-		ent.PosX -= gameWidth
-	} else if ent.PosX < 0 {
-		ent.PosX += gameWidth
-	}
-	if ent.PosY > gameHeight {
-		ent.PosY -= gameHeight
-	} else if ent.PosY < 0 {
-		ent.PosY += gameHeight
+		// crude zone clipping
+		// TODO: for now it works, but needs to be updated for seamless clipping..
+		if ent.PosX > gameWidth {
+			ent.PosX -= gameWidth
+		} else if ent.PosX < 0 {
+			ent.PosX += gameWidth
+		}
+		if ent.PosY > gameHeight {
+			ent.PosY -= gameHeight
+		} else if ent.PosY < 0 {
+			ent.PosY += gameHeight
+		}
 	}
 }
 

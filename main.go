@@ -29,6 +29,8 @@ var (
 	gameRunning      bool    = true
 	altEnter         bool    = false
 	colorsInverted   bool    = false
+	wireframe        bool    = true
+	paused           bool    = false
 	rng                      = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
@@ -61,46 +63,56 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 		gameRunning = false
 	}
 
-	if key == glfw.KeyLeft {
-		if action == glfw.Press {
-			ship.RotateLeft(true)
-		} else if action == glfw.Release {
-			ship.RotateLeft(false)
+	if !paused {
+		if key == glfw.KeyLeft {
+			if action == glfw.Press {
+				ship.RotateLeft(true)
+			} else if action == glfw.Release {
+				ship.RotateLeft(false)
+			}
+		} else if key == glfw.KeyRight {
+			if action == glfw.Press {
+				ship.RotateRight(true)
+			} else if action == glfw.Release {
+				ship.RotateRight(false)
+			}
 		}
-	} else if key == glfw.KeyRight {
-		if action == glfw.Press {
-			ship.RotateRight(true)
-		} else if action == glfw.Release {
-			ship.RotateRight(false)
-		}
-	}
 
-	if key == glfw.KeyUp {
-		if action == glfw.Press {
-			ship.Accelerate(true)
-		} else if action == glfw.Release {
-			ship.Accelerate(false)
+		if key == glfw.KeyUp {
+			if action == glfw.Press {
+				ship.Accelerate(true)
+			} else if action == glfw.Release {
+				ship.Accelerate(false)
+			}
+		} else if key == glfw.KeyDown {
+			if action == glfw.Press {
+				ship.Decelerate(true)
+			} else if action == glfw.Release {
+				ship.Decelerate(false)
+			}
 		}
-	} else if key == glfw.KeyDown {
-		if action == glfw.Press {
-			ship.Decelerate(true)
-		} else if action == glfw.Release {
-			ship.Decelerate(false)
-		}
-	}
 
-	if key == glfw.KeySpace && action == glfw.Press && glfw.GetTime() > lastBulletFired+(1/bulletsPerSecond) {
-		bullet := ship.Shoot()
-		bullets = append(bullets, bullet)
-		lastBulletFired = glfw.GetTime()
+		if key == glfw.KeySpace && action == glfw.Press && glfw.GetTime() > lastBulletFired+(1/bulletsPerSecond) {
+			bullet := ship.Shoot()
+			bullets = append(bullets, bullet)
+			lastBulletFired = glfw.GetTime()
+		}
 	}
 
 	if key == glfw.KeyEnter && action == glfw.Press { //&& mods == glfw.ModAlt {
 		altEnter = true
 	}
 
-	if key == glfw.KeyF1 && action == glfw.Press {
+	if key == glfw.KeyF2 && action == glfw.Press {
 		switchColors()
+	}
+
+	if key == glfw.KeyF3 && action == glfw.Press {
+		switchWireframe()
+	}
+
+	if (key == glfw.KeyPause || key == glfw.KeyP) && action == glfw.Press {
+		paused = !paused
 	}
 }
 
@@ -151,7 +163,9 @@ func initWindow() (window *glfw.Window, err error) {
 
 	gl.Ortho(0, gameWidth, 0, gameHeight, -1.0, 1.0)
 	gl.MatrixMode(gl.MODELVIEW)
-	gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
+	if wireframe {
+		gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
+	}
 
 	return window, nil
 }
@@ -160,6 +174,15 @@ func switchColors() {
 	colorsInverted = !colorsInverted
 	gl.ClearColor(gl.GLclampf(Colorize(0)), gl.GLclampf(Colorize(0)), gl.GLclampf(Colorize(0)), 0.0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
+}
+
+func switchWireframe() {
+	wireframe = !wireframe
+	if wireframe {
+		gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
+	} else {
+		gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
+	}
 }
 
 func initGame() *glfw.Window {

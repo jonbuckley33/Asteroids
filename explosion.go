@@ -54,6 +54,11 @@ func NewExplosionLine(x float64, y float64, velocity float64, size float64) *Exp
 }
 
 func (explosion *Explosion) Update() {
+	if paused {
+		timediff := (glfw.GetTime() - explosion.Entity.lastUpdatedTime)
+		explosion.MaxLifetime = explosion.MaxLifetime + timediff
+	}
+	explosion.Entity.Update()
 	for l, _ := range explosion.Lines {
 		explosion.Lines[l].Update()
 	}
