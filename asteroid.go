@@ -37,6 +37,7 @@ func NewAsteroid(x, y, angle, turnrate, vX, vY, size float64, lives int) *Astero
 }
 
 func (ast *Asteroid) Destroy() {
+	addScore(5 - ast.Lives)
 	ast.Entity.Destroy()
 	if ast.Lives > 0 {
 		ast.CreateChild()

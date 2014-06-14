@@ -78,21 +78,99 @@ func getGeometry(ent *Entity) *geos.Geometry {
 	return geometry
 }
 
-func drawString(x, y, size float64, text string) {
+func DrawString(x, y, size float64, color Color, text string) {
 	text = strings.ToUpper(text)
 	for i, c := range text {
-		drawCharacter(x+(7*float64(i)*size), y, size, string(c))
+		drawCharacter(x+(7*float64(i)*size), y, size, color, string(c))
 	}
 }
 
-func drawCharacter(x, y, size float64, char string) {
+// this is silly, but oh well.. ;)
+func drawCharacter(x, y, size float64, color Color, char string) {
 	gl.LoadIdentity()
 	gl.Begin(gl.LINES)
 
-	gl.Color3d(Colorize(1), Colorize(1), Colorize(1))
+	gl.Color3d(Colorize(color.R), Colorize(color.G), Colorize(color.B))
 
 	c := Char{x, y, size}
 	switch char {
+	case "0":
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 0)
+		c.glVertex2d(4, 0)
+		c.glVertex2d(0, 0)
+		c.glVertex2d(2, 4)
+		c.glVertex2d(2, 5)
+	case "1":
+		c.glVertex2d(2, 0)
+		c.glVertex2d(2, 8)
+		c.glVertex2d(2, 8)
+		c.glVertex2d(0, 6)
+	case "2":
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 4)
+		c.glVertex2d(4, 4)
+		c.glVertex2d(0, 4)
+		c.glVertex2d(0, 4)
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 0)
+		c.glVertex2d(4, 0)
+	case "3":
+		c.glVertex2d(4, 0)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(0, 4)
+		c.glVertex2d(4, 4)
+		c.glVertex2d(0, 0)
+		c.glVertex2d(4, 0)
+	case "4":
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 4)
+		c.glVertex2d(0, 4)
+		c.glVertex2d(4, 4)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 0)
+	case "6":
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 0)
+		c.glVertex2d(4, 0)
+		c.glVertex2d(4, 0)
+		c.glVertex2d(4, 4)
+		c.glVertex2d(4, 4)
+		c.glVertex2d(0, 4)
+	case "7":
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 0)
+	case "8":
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 0)
+		c.glVertex2d(4, 0)
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 4)
+		c.glVertex2d(4, 4)
+	case "9":
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 0)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 4)
+		c.glVertex2d(0, 4)
+		c.glVertex2d(4, 4)
 	case "C":
 		c.glVertex2d(4, 8)
 		c.glVertex2d(0, 8)
@@ -109,6 +187,24 @@ func drawCharacter(x, y, size float64, char string) {
 		c.glVertex2d(3, 4)
 		c.glVertex2d(0, 0)
 		c.glVertex2d(4, 0)
+	case "G":
+		c.glVertex2d(4, 8)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 0)
+		c.glVertex2d(4, 0)
+		c.glVertex2d(4, 0)
+		c.glVertex2d(4, 4)
+		c.glVertex2d(4, 4)
+		c.glVertex2d(2, 4)
+	case "H":
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 0)
+		c.glVertex2d(0, 4)
+		c.glVertex2d(4, 4)
 	case "I":
 		c.glVertex2d(2, 0)
 		c.glVertex2d(2, 8)
@@ -133,7 +229,27 @@ func drawCharacter(x, y, size float64, char string) {
 		c.glVertex2d(4, 0)
 		c.glVertex2d(4, 0)
 		c.glVertex2d(0, 0)
-	case "S":
+	case "P":
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 4)
+		c.glVertex2d(4, 4)
+		c.glVertex2d(0, 4)
+	case "R":
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 4)
+		c.glVertex2d(4, 4)
+		c.glVertex2d(0, 4)
+		c.glVertex2d(2, 4)
+		c.glVertex2d(4, 0)
+	case "S", "5":
 		c.glVertex2d(4, 8)
 		c.glVertex2d(0, 8)
 		c.glVertex2d(0, 8)
@@ -168,6 +284,14 @@ func drawCharacter(x, y, size float64, char string) {
 		c.glVertex2d(2, 4)
 		c.glVertex2d(2, 0)
 	case " ":
+	case "-":
+		c.glVertex2d(1, 4)
+		c.glVertex2d(3, 4)
+	case ":":
+		c.glVertex2d(1, 2)
+		c.glVertex2d(1, 3)
+		c.glVertex2d(1, 5)
+		c.glVertex2d(1, 6)
 	case "!":
 		c.glVertex2d(1, 0)
 		c.glVertex2d(1, 1)

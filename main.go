@@ -25,13 +25,16 @@ var (
 	gameHeight       float64
 	fieldSize        float64 = 400
 	fullscreen       bool    = false
-	won              bool    = true
-	gameRunning      bool    = true
 	altEnter         bool    = false
 	colorsInverted   bool    = false
 	wireframe        bool    = true
 	paused           bool    = false
 	rng                      = rand.New(rand.NewSource(time.Now().UnixNano()))
+	score            int     = 0
+	highscore        int     = 0
+	showHighscore    bool    = true
+	difficulty       int     = 6
+	debug            bool    = true
 )
 
 func errorCallback(err glfw.ErrorCode, desc string) {
@@ -49,18 +52,14 @@ func main() {
 	var window *glfw.Window = initGame()
 	runGameLoop(window)
 
-	if won {
-		fmt.Println("You won!")
-	} else {
-		fmt.Println("You lost!")
-	}
+	fmt.Printf("Your highscore was %d points!\n", highscore)
 }
 
 func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 	//fmt.Printf("%v, %v, %v, %v\n", key, scancode, action, mods)
 
 	if key == glfw.KeyEscape && action == glfw.Press {
-		gameRunning = false
+		window.SetShouldClose(true)
 	}
 
 	if !paused {
@@ -92,7 +91,7 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 			}
 		}
 
-		if key == glfw.KeySpace && action == glfw.Press && glfw.GetTime() > lastBulletFired+(1/bulletsPerSecond) {
+		if key == glfw.KeySpace && action == glfw.Press && glfw.GetTime() > lastBulletFired+(1/bulletsPerSecond) && ship.IsAlive() {
 			bullet := ship.Shoot()
 			bullets = append(bullets, bullet)
 			lastBulletFired = glfw.GetTime()
@@ -103,6 +102,10 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 		altEnter = true
 	}
 
+	if key == glfw.KeyF1 && action == glfw.Press {
+		switchHighscore()
+	}
+
 	if key == glfw.KeyF2 && action == glfw.Press {
 		switchColors()
 	}
@@ -111,8 +114,21 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 		switchWireframe()
 	}
 
+	if (key == glfw.KeyF9 || key == glfw.KeyR || key == glfw.KeyBackspace) && action == glfw.Press {
+		resetGame()
+	}
+
 	if (key == glfw.KeyPause || key == glfw.KeyP) && action == glfw.Press {
 		paused = !paused
+	}
+
+	if key == glfw.KeyN && action == glfw.Press && len(asteroids) == 0 && ship.IsAlive() {
+		difficulty += 3
+		resetGame()
+	}
+
+	if debug && key == glfw.KeyF10 && action == glfw.Press {
+		asteroids = nil
 	}
 }
 
@@ -176,6 +192,10 @@ func initWindow() (window *glfw.Window, err error) {
 	return window, nil
 }
 
+func switchHighscore() {
+	showHighscore = !showHighscore
+}
+
 func switchColors() {
 	colorsInverted = !colorsInverted
 	gl.ClearColor(gl.GLclampf(Colorize(0)), gl.GLclampf(Colorize(0)), gl.GLclampf(Colorize(0)), 0.0)
@@ -197,24 +217,53 @@ func initGame() *glfw.Window {
 		panic(err)
 	}
 
-	// init ship
-	ship = NewShip(gameWidth/2, gameHeight/2, 0, 0.01)
-	// create a couple of random asteroids
-	for i := float64(1); i <= 7; i++ {
-		CreateAsteroid(2+rng.Float64()*8, 3)
-	}
+	resetGame()
 
 	return window
 }
 
-func runGameLoop(window *glfw.Window) {
-	for gameRunning {
-		//check if objects are still alive
-		if !ship.IsAlive() {
-			won = false
-			gameRunning = false
-		}
+func resetGame() {
+	score = 0
 
+	// init ship
+	ship = NewShip(gameWidth/2, gameHeight/2, 0, 0.01)
+
+	// create a couple of random asteroids
+	asteroids = nil
+	for i := 1; i <= difficulty; i++ {
+		CreateAsteroid(2+rng.Float64()*8, 3)
+	}
+
+	bullets = nil
+	explosions = nil
+}
+
+func drawHighScore() {
+	if score > highscore {
+		highscore = score
+	}
+	if showHighscore {
+		DrawString(10, fieldSize-32, 1, Color{0.5, 0.5, 0.5}, fmt.Sprintf("highscore: %d", highscore))
+	}
+}
+
+func drawCurrentScore() {
+	DrawString(10, fieldSize-20, 1, Color{1, 1, 1}, fmt.Sprintf("score: %d", score))
+}
+
+func drawWinningScreen() {
+	DrawString(fieldSize/2-20, fieldSize/2+10, 5, Color{1, 1, 1}, fmt.Sprintf("You won!"))
+	DrawString(fieldSize/2-120, fieldSize/2-20, 2, Color{1, 1, 1}, fmt.Sprintf("Press R to restart current level"))
+	DrawString(fieldSize/2-120, fieldSize/2-50, 2, Color{1, 1, 1}, fmt.Sprintf("Press N to advance to next difficulty level"))
+}
+
+func addScore(value int) {
+	score = score + value
+}
+
+func runGameLoop(window *glfw.Window) {
+	for !window.ShouldClose() {
+		//check if objects are still alive
 		var bullets2 []*Bullet
 		for _, bullet := range bullets {
 			if bullet.IsAlive() {
@@ -239,10 +288,6 @@ func runGameLoop(window *glfw.Window) {
 		}
 		explosions = explosions2
 
-		if len(asteroids) == 0 {
-			gameRunning = false
-		}
-
 		// update objects
 		ship.Update()
 		for _, bullet := range bullets {
@@ -263,7 +308,7 @@ func runGameLoop(window *glfw.Window) {
 					bullet.Destroy()
 				}
 			}
-			if IsColliding(&asteroid.Entity, &ship.Entity) {
+			if ship.IsAlive() && IsColliding(&asteroid.Entity, &ship.Entity) {
 				asteroid.Destroy()
 				ship.Destroy()
 			}
@@ -284,7 +329,12 @@ func runGameLoop(window *glfw.Window) {
 			explosion.Draw()
 		}
 
-		//drawString(50, 50, 2, "you lose! you win! score: 0123456789")
+		drawCurrentScore()
+		drawHighScore()
+
+		if len(asteroids) == 0 && ship.IsAlive() {
+			drawWinningScreen()
+		}
 
 		gl.Flush()
 		window.SwapBuffers()
@@ -309,5 +359,4 @@ func runGameLoop(window *glfw.Window) {
 			}
 		}
 	}
-	window.SetShouldClose(true)
 }

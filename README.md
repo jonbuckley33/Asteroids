@@ -27,12 +27,8 @@ OpenGL Asteroids in Golang..
 
 * add statusbar (or HUD?) at top (or bottom?), with inverted background color (displaying lives, score, keybindings, etc..? or display all this without statusbar? as HUD?)
 * add stars / starfield background
-* add score
 * add ship lives (3?)
-* add increasing difficulty after each clearing of all asteroids (+1 asteroid more?)
-* add proper game over screen
 * display score and past highscore at game over (all lives used up)
-* add restart game functionality (backspace?)
 * seamless zone clipping
 * add torpedos with blast radius (propelled timed bombs, they explode after timer, not upon contact (blast radius affects player ship too))
 * add mines (they explode upon contact (even with player ship))
