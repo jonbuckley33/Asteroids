@@ -128,7 +128,11 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 	}
 
 	if debug && key == glfw.KeyF10 && action == glfw.Press {
-		asteroids = nil
+		for _, asteroid := range asteroids {
+			if asteroid.IsAlive() {
+				asteroid.Destroy()
+			}
+		}
 	}
 }
 
