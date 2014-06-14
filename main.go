@@ -15,26 +15,25 @@ import (
 )
 
 var (
-	ship             *Ship
-	bullets          []*Bullet
-	asteroids        []*Asteroid
-	explosions       []*Explosion
-	lastBulletFired  float64 = -1
-	bulletsPerSecond float64 = 5
-	gameWidth        float64
-	gameHeight       float64
-	fieldSize        float64 = 400
-	fullscreen       bool    = false
-	altEnter         bool    = false
-	colorsInverted   bool    = false
-	wireframe        bool    = true
-	paused           bool    = false
-	rng                      = rand.New(rand.NewSource(time.Now().UnixNano()))
-	score            int     = 0
-	highscore        int     = 0
-	showHighscore    bool    = true
-	difficulty       int     = 6
-	debug            bool    = true
+	ship           *Ship
+	bullets        []*Bullet
+	mines          []*Mine
+	asteroids      []*Asteroid
+	explosions     []*Explosion
+	gameWidth      float64
+	gameHeight     float64
+	fieldSize      float64 = 400
+	fullscreen     bool    = false
+	altEnter       bool    = false
+	colorsInverted bool    = false
+	wireframe      bool    = true
+	paused         bool    = false
+	rng                    = rand.New(rand.NewSource(time.Now().UnixNano()))
+	score          int     = 0
+	highscore      int     = 0
+	showHighscore  bool    = true
+	difficulty     int     = 6
+	debug          bool    = true
 )
 
 func errorCallback(err glfw.ErrorCode, desc string) {
@@ -91,10 +90,20 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 			}
 		}
 
-		if key == glfw.KeySpace && action == glfw.Press && glfw.GetTime() > lastBulletFired+(1/bulletsPerSecond) && ship.IsAlive() {
-			bullet := ship.Shoot()
-			bullets = append(bullets, bullet)
-			lastBulletFired = glfw.GetTime()
+		if key == glfw.KeySpace || key == glfw.KeyX {
+			if action == glfw.Press {
+				ship.Shoot(true)
+			} else if action == glfw.Release {
+				ship.Shoot(false)
+			}
+		}
+
+		if (key == glfw.KeyY || key == glfw.KeyZ || key == glfw.KeyLeftShift || key == glfw.KeyRightShift) && action == glfw.Press {
+			ship.DropMine()
+		}
+
+		if (key == glfw.KeyC || key == glfw.KeyLeftControl || key == glfw.KeyRightControl) && action == glfw.Press {
+			//ship.ShootTorpedo()
 		}
 	}
 
@@ -115,6 +124,7 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 	}
 
 	if (key == glfw.KeyF9 || key == glfw.KeyR || key == glfw.KeyBackspace) && action == glfw.Press {
+		score = 0
 		resetGame()
 	}
 
@@ -122,7 +132,7 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 		paused = !paused
 	}
 
-	if key == glfw.KeyN && action == glfw.Press && len(asteroids) == 0 && ship.IsAlive() {
+	if key == glfw.KeyN && action == glfw.Press && isGameWon() {
 		difficulty += 3
 		resetGame()
 	}
@@ -131,6 +141,11 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 		for _, asteroid := range asteroids {
 			if asteroid.IsAlive() {
 				asteroid.Destroy()
+			}
+		}
+		for _, mine := range mines {
+			if mine.IsAlive() {
+				mine.Destroy()
 			}
 		}
 	}
@@ -215,6 +230,14 @@ func switchWireframe() {
 	}
 }
 
+func isGameWon() bool {
+	return len(asteroids) == 0 && ship.IsAlive()
+}
+
+func isGameLost() bool {
+	return !ship.IsAlive()
+}
+
 func initGame() *glfw.Window {
 	window, err := initWindow()
 	if err != nil {
@@ -227,8 +250,6 @@ func initGame() *glfw.Window {
 }
 
 func resetGame() {
-	score = 0
-
 	// init ship
 	ship = NewShip(gameWidth/2, gameHeight/2, 0, 0.01)
 
@@ -239,6 +260,7 @@ func resetGame() {
 	}
 
 	bullets = nil
+	mines = nil
 	explosions = nil
 }
 
@@ -257,87 +279,65 @@ func drawCurrentScore() {
 
 func drawWinningScreen() {
 	DrawString(fieldSize/2-20, fieldSize/2+10, 5, Color{1, 1, 1}, fmt.Sprintf("You won!"))
-	DrawString(fieldSize/2-120, fieldSize/2-20, 2, Color{1, 1, 1}, fmt.Sprintf("Press R to restart current level"))
-	DrawString(fieldSize/2-120, fieldSize/2-50, 2, Color{1, 1, 1}, fmt.Sprintf("Press N to advance to next difficulty level"))
+	DrawString(fieldSize/2-120, fieldSize/2-20, 1.5, Color{1, 1, 1}, fmt.Sprintf("Press R to restart current level"))
+	DrawString(fieldSize/2-120, fieldSize/2-50, 1.5, Color{1, 1, 1}, fmt.Sprintf("Press N to advance to next difficulty level"))
+}
+
+func drawGameOverScreen() {
+	DrawString(fieldSize/2-20, fieldSize/2+10, 5, Color{1, 1, 1}, fmt.Sprintf("Game Over!"))
+	DrawString(fieldSize/2-120, fieldSize/2-20, 1.5, Color{1, 1, 1}, fmt.Sprintf("Press R to restart current level"))
 }
 
 func addScore(value int) {
-	score = score + value
+	if ship.IsAlive() {
+		score = score + value
+	}
 }
 
 func runGameLoop(window *glfw.Window) {
 	for !window.ShouldClose() {
-		//check if objects are still alive
-		var bullets2 []*Bullet
-		for _, bullet := range bullets {
-			if bullet.IsAlive() {
-				bullets2 = append(bullets2, bullet)
-			}
-		}
-		bullets = bullets2
-
-		var asteroids2 []*Asteroid
-		for _, asteroid := range asteroids {
-			if asteroid.IsAlive() {
-				asteroids2 = append(asteroids2, asteroid)
-			}
-		}
-		asteroids = asteroids2
-
-		var explosions2 []*Explosion
-		for _, explosion := range explosions {
-			if explosion.IsAlive() {
-				explosions2 = append(explosions2, explosion)
-			}
-		}
-		explosions = explosions2
-
 		// update objects
-		ship.Update()
-		for _, bullet := range bullets {
-			bullet.Update()
-		}
-		for _, asteroid := range asteroids {
-			asteroid.Update()
-		}
-		for _, explosion := range explosions {
-			explosion.Update()
-		}
+		updateObjects()
 
 		// hit detection
-		for _, asteroid := range asteroids {
-			for _, bullet := range bullets {
-				if IsColliding(&asteroid.Entity, &bullet.Entity) {
-					asteroid.Destroy()
-					bullet.Destroy()
-				}
-			}
-			if ship.IsAlive() && IsColliding(&asteroid.Entity, &ship.Entity) {
-				asteroid.Destroy()
-				ship.Destroy()
-			}
-		}
+		hitDetection()
 
 		// ---------------------------------------------------------------
 		// draw calls
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		ship.Draw(false)
-		for _, bullet := range bullets {
-			bullet.Draw()
-		}
-		for _, asteroid := range asteroids {
-			asteroid.Draw(true)
-		}
-		for _, explosion := range explosions {
-			explosion.Draw()
-		}
-
 		drawCurrentScore()
 		drawHighScore()
 
-		if len(asteroids) == 0 && ship.IsAlive() {
+		if isGameWon() {
 			drawWinningScreen()
+		} else if isGameLost() {
+			drawGameOverScreen()
+		}
+
+		// draw everything 9 times in a 3x3 grid stitched together for seamless clipping
+		for x := -1.0; x < 2.0; x++ {
+			for y := -1.0; y < 2.0; y++ {
+				gl.MatrixMode(gl.MODELVIEW)
+				gl.PushMatrix()
+				gl.Translated(gameWidth*x, gameHeight*y, 0)
+
+				ship.Draw(false)
+				for _, bullet := range bullets {
+					bullet.Draw()
+				}
+				for _, mine := range mines {
+					mine.Draw(false)
+				}
+				for _, asteroid := range asteroids {
+					asteroid.Draw(true)
+				}
+				for _, explosion := range explosions {
+					explosion.Draw()
+				}
+
+				gl.PopMatrix()
+			}
 		}
 
 		gl.Flush()
@@ -361,6 +361,83 @@ func runGameLoop(window *glfw.Window) {
 			if fullscreen {
 				gl.LineWidth(2)
 			}
+		}
+	}
+}
+
+func updateObjects() {
+	//check if objects are still alive
+	var bullets2 []*Bullet
+	for _, bullet := range bullets {
+		if bullet.IsAlive() {
+			bullets2 = append(bullets2, bullet)
+		}
+	}
+	bullets = bullets2
+
+	var mines2 []*Mine
+	for _, mine := range mines {
+		if mine.IsAlive() {
+			mines2 = append(mines2, mine)
+		}
+	}
+	mines = mines2
+
+	var asteroids2 []*Asteroid
+	for _, asteroid := range asteroids {
+		if asteroid.IsAlive() {
+			asteroids2 = append(asteroids2, asteroid)
+		}
+	}
+	asteroids = asteroids2
+
+	var explosions2 []*Explosion
+	for _, explosion := range explosions {
+		if explosion.IsAlive() {
+			explosions2 = append(explosions2, explosion)
+		}
+	}
+	explosions = explosions2
+
+	// call their update func
+	ship.Update()
+	for _, bullet := range bullets {
+		bullet.Update()
+	}
+	for _, mine := range mines {
+		mine.Update()
+	}
+	for _, asteroid := range asteroids {
+		asteroid.Update()
+	}
+	for _, explosion := range explosions {
+		explosion.Update()
+	}
+}
+
+func hitDetection() {
+	for _, asteroid := range asteroids {
+		for _, bullet := range bullets {
+			if IsColliding(&asteroid.Entity, &bullet.Entity) {
+				asteroid.Destroy()
+				bullet.Destroy()
+			}
+		}
+		for _, mine := range mines {
+			if IsColliding(&asteroid.Entity, &mine.Entity) {
+				asteroid.Destroy()
+				mine.Destroy()
+			}
+		}
+		if ship.IsAlive() && IsColliding(&asteroid.Entity, &ship.Entity) {
+			asteroid.Destroy()
+			ship.Destroy()
+		}
+	}
+	for _, mine := range mines {
+		if ship.IsAlive() && IsColliding(&mine.Entity, &ship.Entity) {
+			mine.Destroy()
+			ship.Destroy()
 		}
 	}
 }

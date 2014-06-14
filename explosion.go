@@ -67,7 +67,6 @@ func (explosion *Explosion) Update() {
 func (explosion *Explosion) Draw() {
 	if explosion.IsAlive() {
 		for l, _ := range explosion.Lines {
-			gl.LoadIdentity()
 			gl.Begin(gl.LINES)
 
 			for v, _ := range explosion.Lines[l].Shape.Vectors {

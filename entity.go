@@ -53,7 +53,7 @@ func NewEntity(shape Polygon, x, y, angle, turnrate, vX, vY, accel, maxvel float
 
 func (ent *Entity) Draw(invertColors bool) {
 	if ent.IsAlive() {
-		gl.LoadIdentity()
+		//gl.LoadIdentity()
 		gl.Begin(gl.POLYGON)
 
 		for v := range ent.Shape.Vectors {

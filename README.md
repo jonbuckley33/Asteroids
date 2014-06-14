@@ -25,16 +25,8 @@ OpenGL Asteroids in Golang..
 
 ### Todo
 
-* add statusbar (or HUD?) at top (or bottom?), with inverted background color (displaying lives, score, keybindings, etc..? or display all this without statusbar? as HUD?)
 * add stars / starfield background
-* add ship lives (3?)
-* display score and past highscore at game over (all lives used up)
-* seamless zone clipping
+* add ship lives (3? show also as icons on HUD?)
+* grant 1 extra live every x points scored
 * add torpedos with blast radius (propelled timed bombs, they explode after timer, not upon contact (blast radius affects player ship too))
-* add mines (they explode upon contact (even with player ship))
 * add enemy ships (random appearance?)
-
-### Bugs
-
-gltext does not seem to work properly on my machine. It's just causing panics. Will need to write a few crude functions to draw text on my own (using GL_LINES lol ;))
-

@@ -171,6 +171,15 @@ func drawCharacter(x, y, size float64, color Color, char string) {
 		c.glVertex2d(0, 4)
 		c.glVertex2d(0, 4)
 		c.glVertex2d(4, 4)
+	case "A":
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 0)
+		c.glVertex2d(0, 4)
+		c.glVertex2d(4, 4)
 	case "C":
 		c.glVertex2d(4, 8)
 		c.glVertex2d(0, 8)
@@ -178,6 +187,19 @@ func drawCharacter(x, y, size float64, color Color, char string) {
 		c.glVertex2d(0, 0)
 		c.glVertex2d(0, 0)
 		c.glVertex2d(4, 0)
+	case "D":
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 0)
+		c.glVertex2d(3, 0)
+		c.glVertex2d(3, 0)
+		c.glVertex2d(4, 2)
+		c.glVertex2d(4, 2)
+		c.glVertex2d(4, 6)
+		c.glVertex2d(4, 6)
+		c.glVertex2d(3, 8)
+		c.glVertex2d(3, 8)
+		c.glVertex2d(0, 8)
 	case "E":
 		c.glVertex2d(0, 0)
 		c.glVertex2d(0, 8)
@@ -187,6 +209,13 @@ func drawCharacter(x, y, size float64, color Color, char string) {
 		c.glVertex2d(3, 4)
 		c.glVertex2d(0, 0)
 		c.glVertex2d(4, 0)
+	case "F":
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(0, 4)
+		c.glVertex2d(3, 4)
 	case "G":
 		c.glVertex2d(4, 8)
 		c.glVertex2d(0, 8)
@@ -212,6 +241,15 @@ func drawCharacter(x, y, size float64, color Color, char string) {
 		c.glVertex2d(0, 8)
 		c.glVertex2d(0, 0)
 		c.glVertex2d(0, 0)
+		c.glVertex2d(4, 0)
+	case "M":
+		c.glVertex2d(0, 0)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(0, 8)
+		c.glVertex2d(2, 5)
+		c.glVertex2d(2, 5)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(4, 8)
 		c.glVertex2d(4, 0)
 	case "N":
 		c.glVertex2d(0, 0)
@@ -260,12 +298,22 @@ func drawCharacter(x, y, size float64, color Color, char string) {
 		c.glVertex2d(4, 0)
 		c.glVertex2d(4, 0)
 		c.glVertex2d(0, 0)
+	case "T":
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 8)
+		c.glVertex2d(2, 8)
+		c.glVertex2d(2, 0)
 	case "U":
 		c.glVertex2d(0, 0)
 		c.glVertex2d(0, 8)
 		c.glVertex2d(0, 0)
 		c.glVertex2d(4, 0)
 		c.glVertex2d(4, 0)
+		c.glVertex2d(4, 8)
+	case "V":
+		c.glVertex2d(0, 8)
+		c.glVertex2d(2, 0)
+		c.glVertex2d(2, 0)
 		c.glVertex2d(4, 8)
 	case "W":
 		c.glVertex2d(0, 8)
@@ -275,6 +323,11 @@ func drawCharacter(x, y, size float64, color Color, char string) {
 		c.glVertex2d(2, 3)
 		c.glVertex2d(3, 0)
 		c.glVertex2d(3, 0)
+		c.glVertex2d(4, 8)
+	case "X":
+		c.glVertex2d(0, 8)
+		c.glVertex2d(4, 0)
+		c.glVertex2d(0, 0)
 		c.glVertex2d(4, 8)
 	case "Y":
 		c.glVertex2d(0, 8)
