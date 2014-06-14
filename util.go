@@ -7,6 +7,7 @@ package main
 import (
 	"math"
 
+	"github.com/go-gl/gl"
 	"github.com/paulsmith/gogeos/geos"
 )
 
@@ -68,4 +69,59 @@ func getGeometry(ent *Entity) *geos.Geometry {
 	}
 
 	return geometry
+}
+
+func drawLoss(x, y float64) {
+	drawCharacter(x, y, 1, "L")
+	drawCharacter(x+7, y, 1, "O")
+	drawCharacter(x+14, y, 1, "S")
+	drawCharacter(x+21, y, 1, "E")
+}
+
+func drawCharacter(x, y, size float64, char string) {
+	gl.LoadIdentity()
+	gl.Begin(gl.LINES)
+
+	switch char {
+	case "L":
+		vertex2d(x, y, size, 0, 8)
+		vertex2d(x, y, size, 0, 0)
+		vertex2d(x, y, size, 0, 0)
+		vertex2d(x, y, size, 4, 0)
+	case "O":
+		vertex2d(x, y, size, 0, 0)
+		vertex2d(x, y, size, 0, 5)
+		vertex2d(x, y, size, 0, 5)
+		vertex2d(x, y, size, 3, 5)
+		vertex2d(x, y, size, 3, 5)
+		vertex2d(x, y, size, 3, 0)
+		vertex2d(x, y, size, 3, 0)
+		vertex2d(x, y, size, 0, 0)
+	case "S":
+		vertex2d(x, y, size, 4, 5)
+		vertex2d(x, y, size, 0, 5)
+		vertex2d(x, y, size, 0, 5)
+		vertex2d(x, y, size, 0, 2)
+		vertex2d(x, y, size, 0, 2)
+		vertex2d(x, y, size, 4, 2)
+		vertex2d(x, y, size, 4, 2)
+		vertex2d(x, y, size, 4, 0)
+		vertex2d(x, y, size, 4, 0)
+		vertex2d(x, y, size, 0, 0)
+	case "E":
+		vertex2d(x, y, size, 0, 0)
+		vertex2d(x, y, size, 0, 5)
+		vertex2d(x, y, size, 0, 5)
+		vertex2d(x, y, size, 4, 5)
+		vertex2d(x, y, size, 0, 2)
+		vertex2d(x, y, size, 3, 2)
+		vertex2d(x, y, size, 0, 0)
+		vertex2d(x, y, size, 4, 0)
+	}
+
+	gl.End()
+}
+
+func vertex2d(x, y, size, xv, yv float64) {
+	gl.Vertex2d(x+(xv*size), y+(yv*size))
 }

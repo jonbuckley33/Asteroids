@@ -116,6 +116,21 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 	}
 }
 
+func reshapeWindow(window *glfw.Window, width, height int) {
+	ratio := float64(width) / float64(height)
+	gameWidth = ratio * fieldSize
+	gameHeight = fieldSize
+	gl.Viewport(0, 0, width, height)
+	gl.MatrixMode(gl.PROJECTION)
+	gl.LoadIdentity()
+
+	gl.Ortho(0, gameWidth, 0, gameHeight, -1.0, 1.0)
+	gl.MatrixMode(gl.MODELVIEW)
+	if wireframe {
+		gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
+	}
+}
+
 func initWindow() (window *glfw.Window, err error) {
 	monitor, err := glfw.GetPrimaryMonitor()
 	if err != nil {
@@ -148,6 +163,7 @@ func initWindow() (window *glfw.Window, err error) {
 	}
 
 	window.SetKeyCallback(keyCallback)
+	window.SetFramebufferSizeCallback(reshapeWindow)
 	window.MakeContextCurrent()
 
 	gl.Init()
@@ -155,17 +171,7 @@ func initWindow() (window *glfw.Window, err error) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
 	width, height := window.GetFramebufferSize()
-	gameWidth = ratio * fieldSize
-	gameHeight = fieldSize
-	gl.Viewport(0, 0, width, height)
-	gl.MatrixMode(gl.PROJECTION)
-	gl.LoadIdentity()
-
-	gl.Ortho(0, gameWidth, 0, gameHeight, -1.0, 1.0)
-	gl.MatrixMode(gl.MODELVIEW)
-	if wireframe {
-		gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
-	}
+	reshapeWindow(window, width, height)
 
 	return window, nil
 }
@@ -277,6 +283,8 @@ func runGameLoop(window *glfw.Window) {
 		for _, explosion := range explosions {
 			explosion.Draw()
 		}
+
+		//drawLoss(50, 50)
 
 		gl.Flush()
 		window.SwapBuffers()
