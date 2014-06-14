@@ -284,7 +284,7 @@ func runGameLoop(window *glfw.Window) {
 			explosion.Draw()
 		}
 
-		//drawLoss(50, 50)
+		//drawString(50, 50, 2, "you lose! you win! score: 0123456789")
 
 		gl.Flush()
 		window.SwapBuffers()

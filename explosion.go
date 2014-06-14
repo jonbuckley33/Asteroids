@@ -23,7 +23,7 @@ type ExplosionLine struct {
 	Size float64
 }
 
-func NewExplosion(x float64, y float64, size float64) *Explosion {
+func NewExplosion(x, y, size float64) *Explosion {
 	var lines []*ExplosionLine
 	for i := 0; i < 7; i++ {
 		lines = append(lines, NewExplosionLine(x, y, 0.05, size))
@@ -33,7 +33,7 @@ func NewExplosion(x float64, y float64, size float64) *Explosion {
 	return explosion
 }
 
-func NewExplosionLine(x float64, y float64, velocity float64, size float64) *ExplosionLine {
+func NewExplosionLine(x, y, velocity, size float64) *ExplosionLine {
 	shape := Polygon{
 		[]Vector{
 			Vector{0, 1},

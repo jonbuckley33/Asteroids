@@ -11,7 +11,7 @@ type Ship struct {
 	Friction float64
 }
 
-func NewShip(x float64, y float64, angle float64, friction float64) *Ship {
+func NewShip(x, y, angle, friction float64) *Ship {
 	shape := Polygon{
 		[]Vector{
 			Vector{0, 5},

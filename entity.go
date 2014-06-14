@@ -30,7 +30,7 @@ type Entity struct {
 	lastUpdatedTime  float64
 }
 
-func NewEntity(shape Polygon, x float64, y float64, angle float64, turnrate float64, vX float64, vY float64, accel float64, maxvel float64) *Entity {
+func NewEntity(shape Polygon, x, y, angle, turnrate, vX, vY, accel, maxvel float64) *Entity {
 	return &Entity{
 		Shape:            shape,
 		PosX:             x,

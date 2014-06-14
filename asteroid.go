@@ -10,7 +10,7 @@ type Asteroid struct {
 	Lives     int
 }
 
-func NewAsteroid(x float64, y float64, angle float64, turnrate float64, vX float64, vY float64, size float64, lives int) *Asteroid {
+func NewAsteroid(x, y, angle, turnrate, vX, vY, size float64, lives int) *Asteroid {
 	shape := Polygon{
 		[]Vector{
 			Vector{0 * size, 5.0 * size},

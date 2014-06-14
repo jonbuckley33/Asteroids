@@ -11,7 +11,7 @@ type Bullet struct {
 	MaxLifetime float64
 }
 
-func NewBullet(x float64, y float64, vX float64, vY float64) *Bullet {
+func NewBullet(x, y, vX, vY float64) *Bullet {
 	shape := Polygon{
 		[]Vector{
 			Vector{0, 1},
