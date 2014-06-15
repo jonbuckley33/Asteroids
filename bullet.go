@@ -33,12 +33,6 @@ func NewBullet(x, y, vX, vY float64) *Bullet {
 	return bullet
 }
 
-func (bullet *Bullet) Draw() {
-	if bullet.IsAlive() {
-		bullet.Entity.Draw(false)
-	}
-}
-
 func (bullet *Bullet) Update() {
 	if paused {
 		timediff := (glfw.GetTime() - bullet.Entity.lastUpdatedTime)

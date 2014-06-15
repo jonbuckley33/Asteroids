@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"runtime"
 	"time"
 
 	"github.com/go-gl/gl"
@@ -17,9 +18,11 @@ import (
 var (
 	ship           *Ship
 	bullets        []*Bullet
+	torpedos       []*Torpedo
 	mines          []*Mine
 	asteroids      []*Asteroid
 	explosions     []*Explosion
+	bigExplosions  []*BigExplosion
 	gameWidth      float64
 	gameHeight     float64
 	fieldSize      float64 = 400
@@ -41,6 +44,7 @@ func errorCallback(err glfw.ErrorCode, desc string) {
 }
 
 func main() {
+	runtime.LockOSThread()
 	glfw.SetErrorCallback(errorCallback)
 
 	if !glfw.Init() {
@@ -103,7 +107,7 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 		}
 
 		if (key == glfw.KeyC || key == glfw.KeyLeftControl || key == glfw.KeyRightControl) && action == glfw.Press {
-			//ship.ShootTorpedo()
+			ship.ShootTorpedo()
 		}
 	}
 
@@ -262,6 +266,8 @@ func resetGame() {
 	bullets = nil
 	mines = nil
 	explosions = nil
+	torpedos = nil
+	bigExplosions = nil
 }
 
 func drawHighScore() {
@@ -322,19 +328,7 @@ func runGameLoop(window *glfw.Window) {
 				gl.PushMatrix()
 				gl.Translated(gameWidth*x, gameHeight*y, 0)
 
-				ship.Draw(false)
-				for _, bullet := range bullets {
-					bullet.Draw()
-				}
-				for _, mine := range mines {
-					mine.Draw(false)
-				}
-				for _, asteroid := range asteroids {
-					asteroid.Draw(true)
-				}
-				for _, explosion := range explosions {
-					explosion.Draw()
-				}
+				drawObjects()
 
 				gl.PopMatrix()
 			}
@@ -365,6 +359,28 @@ func runGameLoop(window *glfw.Window) {
 	}
 }
 
+func drawObjects() {
+	ship.Draw(false)
+	for _, bullet := range bullets {
+		bullet.Draw(false)
+	}
+	for _, torpedo := range torpedos {
+		torpedo.Draw(false)
+	}
+	for _, mine := range mines {
+		mine.Draw(false)
+	}
+	for _, asteroid := range asteroids {
+		asteroid.Draw(true)
+	}
+	for _, explosion := range explosions {
+		explosion.Draw()
+	}
+	for _, bigExplosion := range bigExplosions {
+		bigExplosion.Draw(false)
+	}
+}
+
 func updateObjects() {
 	//check if objects are still alive
 	var bullets2 []*Bullet
@@ -374,6 +390,14 @@ func updateObjects() {
 		}
 	}
 	bullets = bullets2
+
+	var torpedos2 []*Torpedo
+	for _, torpedo := range torpedos {
+		if torpedo.IsAlive() {
+			torpedos2 = append(torpedos2, torpedo)
+		}
+	}
+	torpedos = torpedos2
 
 	var mines2 []*Mine
 	for _, mine := range mines {
@@ -399,10 +423,21 @@ func updateObjects() {
 	}
 	explosions = explosions2
 
+	var bigExplosions2 []*BigExplosion
+	for _, bigExplosion := range bigExplosions {
+		if bigExplosion.IsAlive() {
+			bigExplosions2 = append(bigExplosions2, bigExplosion)
+		}
+	}
+	bigExplosions = bigExplosions2
+
 	// call their update func
 	ship.Update()
 	for _, bullet := range bullets {
 		bullet.Update()
+	}
+	for _, torpedo := range torpedos {
+		torpedo.Update()
 	}
 	for _, mine := range mines {
 		mine.Update()
@@ -412,6 +447,9 @@ func updateObjects() {
 	}
 	for _, explosion := range explosions {
 		explosion.Update()
+	}
+	for _, bigExplosion := range bigExplosions {
+		bigExplosion.Update()
 	}
 }
 
@@ -423,14 +461,36 @@ func hitDetection() {
 				bullet.Destroy()
 			}
 		}
+		// for _, torpedo := range torpedos {
+		// 	if IsColliding(&asteroid.Entity, &torpedo.Entity) {
+		// 		asteroid.Destroy()
+		// 		torpedo.Destroy()
+		// 	}
+		// }
 		for _, mine := range mines {
 			if IsColliding(&asteroid.Entity, &mine.Entity) {
 				asteroid.Destroy()
 				mine.Destroy()
 			}
 		}
+		for _, bigExplosion := range bigExplosions {
+			if IsColliding(&asteroid.Entity, &bigExplosion.Entity) {
+				asteroid.Destroy()
+			}
+		}
 		if ship.IsAlive() && IsColliding(&asteroid.Entity, &ship.Entity) {
 			asteroid.Destroy()
+			ship.Destroy()
+		}
+	}
+	// for _, torpedo := range torpedos {
+	// 	if ship.IsAlive() && IsColliding(&torpedo.Entity, &ship.Entity) {
+	// 		torpedo.Destroy()
+	// 		ship.Destroy()
+	// 	}
+	// }
+	for _, bigExplosion := range bigExplosions {
+		if ship.IsAlive() && IsColliding(&bigExplosion.Entity, &ship.Entity) {
 			ship.Destroy()
 		}
 	}

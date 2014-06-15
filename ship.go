@@ -17,6 +17,7 @@ type Ship struct {
 	lastBulletFired  float64
 	bulletsPerSecond float64
 	mines            int
+	torpedos         int
 }
 
 func NewShip(x, y, angle, friction float64) *Ship {
@@ -32,7 +33,7 @@ func NewShip(x, y, angle, friction float64) *Ship {
 			Color{0.1, 0.2, 0.7},
 		},
 	}
-	return &Ship{*NewEntity(shape, x, y, angle, 0.5, 0, 0, 0.0025, 0.25), friction, false, 0, 5, 3}
+	return &Ship{*NewEntity(shape, x, y, angle, 0.5, 0, 0, 0.0025, 0.25), friction, false, 0, 5, 3, 1}
 }
 
 func (ship *Ship) DropMine() {
@@ -64,6 +65,24 @@ func (ship *Ship) shoot() {
 		)
 		bullets = append(bullets, bullet)
 		ship.lastBulletFired = glfw.GetTime()
+	}
+}
+
+func (ship *Ship) ShootTorpedo() {
+	if ship.IsAlive() && ship.torpedos > 0 {
+		var rad float64 = ((ship.Angle) * math.Pi) / 180
+		x, y := RotateVector(&Vector{0, 8}, ship.Angle)
+
+		torpedo := NewTorpedo(
+			ship.PosX+x,
+			ship.PosY+y,
+			ship.Angle,
+			ship.MaxVelocity*math.Sin(rad)*1.5,
+			ship.MaxVelocity*math.Cos(rad)*1.5,
+		)
+		torpedos = append(torpedos, torpedo)
+
+		ship.torpedos -= 1
 	}
 }
 

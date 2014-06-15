@@ -53,13 +53,25 @@ func (v *Vector) Rotate(angle float64) (float64, float64) {
 }
 
 func IsColliding(a *Entity, b *Entity) bool {
-	// (ab)use GEOS C library for intersection detection between polygons.. ;)
-	intersects, err := getGeometry(a).Intersects(getGeometry(b))
-	if err != nil {
-		panic(err)
+	// check everything 9 times in a 3x3 grid for collision detection across boundaries
+	for x := -1.0; x < 2.0; x++ {
+		for y := -1.0; y < 2.0; y++ {
+			var mod Entity = *a
+			mod.PosX = mod.PosX + (gameWidth * x)
+			mod.PosY = mod.PosY + (gameHeight * y)
+
+			// (ab)use GEOS C library for intersection detection between polygons.. ;)
+			intersects, err := getGeometry(&mod).Intersects(getGeometry(b))
+			if err != nil {
+				panic(err)
+			}
+			if intersects {
+				return true
+			}
+		}
 	}
 
-	return intersects
+	return false
 }
 
 func getGeometry(ent *Entity) *geos.Geometry {
@@ -87,7 +99,7 @@ func DrawString(x, y, size float64, color Color, text string) {
 
 // this is silly, but oh well.. ;)
 func drawCharacter(x, y, size float64, color Color, char string) {
-	gl.LoadIdentity()
+	//gl.LoadIdentity()
 	gl.Begin(gl.LINES)
 
 	gl.Color3d(Colorize(color.R), Colorize(color.G), Colorize(color.B))

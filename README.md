@@ -28,5 +28,4 @@ OpenGL Asteroids in Golang..
 * add stars / starfield background
 * add ship lives (3? show also as icons on HUD?)
 * grant 1 extra live every x points scored
-* add torpedos with blast radius (propelled timed bombs, they explode after timer, not upon contact (blast radius affects player ship too))
 * add enemy ships (random appearance?)
