@@ -8,7 +8,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/go-gl/gl"
+	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/paulsmith/gogeos/geos"
 )
 

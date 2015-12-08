@@ -7,7 +7,7 @@ package main
 import (
 	"math"
 
-	glfw "github.com/go-gl/glfw3"
+	glfw "github.com/go-gl/glfw3/v3.0/glfw"
 )
 
 type Ship struct {

@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/go-gl/gl"
-	glfw "github.com/go-gl/glfw3"
+	"github.com/go-gl/gl/v2.1/gl"
+	glfw "github.com/go-gl/glfw3/v3.0/glfw"
 )
 
 var (
@@ -159,7 +159,7 @@ func reshapeWindow(window *glfw.Window, width, height int) {
 	ratio := float64(width) / float64(height)
 	gameWidth = ratio * fieldSize
 	gameHeight = fieldSize
-	gl.Viewport(0, 0, width, height)
+	gl.Viewport(0, 0, int32(width), int32(height))
 	gl.MatrixMode(gl.PROJECTION)
 	gl.LoadIdentity()
 
@@ -206,7 +206,7 @@ func initWindow() (window *glfw.Window, err error) {
 	window.MakeContextCurrent()
 
 	gl.Init()
-	gl.ClearColor(gl.GLclampf(Colorize(0)), gl.GLclampf(Colorize(0)), gl.GLclampf(Colorize(0)), 0.0)
+	gl.ClearColor(GLclampf(Colorize(0)), GLclampf(Colorize(0)), GLclampf(Colorize(0)), 0.0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
 	width, height := window.GetFramebufferSize()
@@ -215,13 +215,23 @@ func initWindow() (window *glfw.Window, err error) {
 	return window, nil
 }
 
+func GLclampf(f float64) float32 {
+	if f > 1.0 {
+		return 1.0
+	} else if f < 0 {
+		return -1.0
+	}
+
+	return float32(f)
+}
+
 func switchHighscore() {
 	showHighscore = !showHighscore
 }
 
 func switchColors() {
 	colorsInverted = !colorsInverted
-	gl.ClearColor(gl.GLclampf(Colorize(0)), gl.GLclampf(Colorize(0)), gl.GLclampf(Colorize(0)), 0.0)
+	gl.ClearColor(GLclampf(Colorize(0)), GLclampf(Colorize(0)), GLclampf(Colorize(0)), 0.0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 }
 

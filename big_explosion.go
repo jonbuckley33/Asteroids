@@ -4,7 +4,7 @@
 
 package main
 
-import glfw "github.com/go-gl/glfw3"
+import glfw "github.com/go-gl/glfw3/v3.0/glfw"
 
 type BigExplosion struct {
 	Entity

@@ -7,8 +7,8 @@ package main
 import (
 	"math"
 
-	"github.com/go-gl/gl"
-	glfw "github.com/go-gl/glfw3"
+	"github.com/go-gl/gl/v2.1/gl"
+	glfw "github.com/go-gl/glfw3/v3.0/glfw"
 )
 
 type Entity struct {
