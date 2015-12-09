@@ -7,9 +7,11 @@ package main
 import (
 	"errors"
 	"fmt"
+	"flag"
 	"math/rand"
 	"runtime"
 	"time"
+	"log"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	glfw "github.com/go-gl/glfw3/v3.0/glfw"
@@ -37,6 +39,7 @@ var (
 	showHighscore  bool    = true
 	difficulty     int     = 6
 	debug          bool    = true
+	gameNode	   *GameNode
 )
 
 func errorCallback(err glfw.ErrorCode, desc string) {
@@ -44,6 +47,33 @@ func errorCallback(err glfw.ErrorCode, desc string) {
 }
 
 func main() {
+    host := flag.String("server", "", "the host:port of the game server")
+    myHostPort := flag.String("hostAt", "", "port at which to start a game server")
+    flag.Parse()
+
+    // Default
+    if *host == "" && *myHostPort == "" {
+    	log.Fatal("Please specify a host or a port at which to serve a game.")
+    }
+
+    // We are a client of a game server. 
+    if *host != "" {
+    	*myHostPort = ":10029"
+    	gn, err := NewGameClient(*myHostPort, *host)
+    	gameNode = gn
+    	if err != nil {
+    		panic("Could not make game client")
+    	}
+    } else {
+    	println("GOT THIS FAR")
+    	gn, err := NewGameServer(*myHostPort)
+    	println("GOT THIS FAR TOO!")
+    	gameNode = gn
+    	if err != nil {
+    		panic("Could not start game server")
+    	} 
+    }
+
 	runtime.LockOSThread()
 	glfw.SetErrorCallback(errorCallback)
 
@@ -194,10 +224,12 @@ func initWindow() (window *glfw.Window, err error) {
 		window.SetPosition(0, 0)
 	} else {
 		glfw.WindowHint(glfw.Decorated, 1)
+		println("Trying to create window")
 		window, err = glfw.CreateWindow(int(ratio*480), 480, "Golang Asteroids!", nil, nil)
 		if err != nil {
 			return nil, err
 		}
+		println("Created window!")
 		window.SetPosition(videomode.Width/2-320, videomode.Height/2-240)
 	}
 
@@ -310,6 +342,10 @@ func addScore(value int) {
 	}
 }
 
+func shareGameState() {
+	gameNode.SharePlayerLocation(ship.PosX, ship.PosY)
+}
+
 func runGameLoop(window *glfw.Window) {
 	for !window.ShouldClose() {
 		// update objects
@@ -317,6 +353,13 @@ func runGameLoop(window *glfw.Window) {
 
 		// hit detection
 		hitDetection()
+
+		shareGameState()
+
+		// println("------------------")
+		// for k, v := range(gameNode.GetPlayerLocations()) {
+		// 	fmt.Printf("Player %v: (%v, %v)", k, v[0], v[1])
+		// }
 
 		// ---------------------------------------------------------------
 		// draw calls
