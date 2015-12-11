@@ -176,3 +176,4 @@ func (gs *GameNode) GetPlayerLocations() map[int][]int {
 /*func (gs *GameNode) SaveAsteroidLocations(asteroids []byte){
 	_, err := gs.MakeProposal("asteroids", asteroids(string))
 }*/
+

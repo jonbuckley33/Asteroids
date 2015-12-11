@@ -367,12 +367,12 @@ func addScore(value int) {
 func shareGameState() {
 	gameNode.SharePlayerLocation(ship.PosX, ship.PosY)
 	//share velocity
-
-
 }
 
 
 //update ship locations functions
+
+
 
 
 func runGameLoop(window *glfw.Window) {
@@ -574,8 +574,7 @@ func hitDetection() {
 				ships.Destroy()
 				Ships= append(Ships[:i], Ships[i+1:]...)
 			}
-		}
-		
+		}	
 	}
 	// for _, torpedo := range torpedos {
 	// 	if ship.IsAlive() && IsColliding(&torpedo.Entity, &ship.Entity) {
@@ -591,6 +590,7 @@ func hitDetection() {
 				Ships= append(Ships[:i], Ships[i+1:]...)
 
 			}
+		}
 		for _, mine := range mines {
 			if ship.IsAlive() && IsColliding(&mine.Entity, &ship.Entity) {
 				mine.Destroy()
@@ -598,8 +598,4 @@ func hitDetection() {
 			}
 		}
 	}
-}
-			
-	
-	
 }
