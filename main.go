@@ -20,9 +20,10 @@ import (
 var (
 	ship           *Ship //create intiail main player ship
 	shipMap		   map[int]*Ship //holds all the players/ships on the board
-	shipId			int //used to store player/ship info in paxos
+	shipId		   int //used to store player/ship info in paxos
 	PlayerId	   int
-
+	isClient       bool
+  
 	bullets        []*Bullet
 	torpedos       []*Torpedo
 	mines          []*Mine
@@ -61,8 +62,26 @@ func main() {
     	log.Fatal("Please specify a host or a port at which to serve a game.")
     }
 
+	runtime.LockOSThread()
+	glfw.SetErrorCallback(errorCallback)
+
+	if !glfw.Init() {
+		panic("can't init glfw!")
+	}
+	defer glfw.Terminate()
+
+ 	isClient = *host != ""
+
+	var window *glfw.Window
+	window, err := initWindow()
+	if err != nil {
+		panic(err)
+	}
+
+	// If we make it this far, the game is stable.
+
     // We are a client of a game server. 
-    if *host != "" {
+    if isClient {
     	*myHostPort = ":10029"
     	gn, err := NewGameClient(*myHostPort, *host)
     	gameNode = gn
@@ -76,18 +95,10 @@ func main() {
     		panic("Could not start game server")
     	} 
     }
-
 	PlayerId = gameNode.PlayerId    
 
-	runtime.LockOSThread()
-	glfw.SetErrorCallback(errorCallback)
+    resetGame(!isClient)
 
-	if !glfw.Init() {
-		panic("can't init glfw!")
-	}
-	defer glfw.Terminate()
-
-	var window *glfw.Window = initGame()
 	runGameLoop(window)
 
 	fmt.Printf("Your highscore was %d points!\n", highscore)
@@ -101,12 +112,10 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
 		x:=r.Float64()
 		y:=r.Float64()
-		shipNew:=new(Ship)
-		shipNew = NewShip(gameWidth/x, gameHeight/y, 0, 0.01)
-		shipId+=1
+		shipNew := NewShip(gameWidth/x, gameHeight/y, 0, 0.01)
+		shipId += 1
 		shipMap[shipId]=shipNew
 	}
-
 
 
 	if key == glfw.KeyEscape && action == glfw.Press {
@@ -177,7 +186,7 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 
 	if (key == glfw.KeyF9 || key == glfw.KeyR || key == glfw.KeyBackspace) && action == glfw.Press {
 		score = 0
-		resetGame()
+		resetGame(!isClient)
 	}
 
 	if (key == glfw.KeyPause || key == glfw.KeyP) && action == glfw.Press {
@@ -186,7 +195,7 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Ac
 
 	if key == glfw.KeyN && action == glfw.Press && isGameWon() {
 		difficulty += 3
-		resetGame()
+		resetGame(!isClient)
 	}
 
 	if debug && key == glfw.KeyF10 && action == glfw.Press {
@@ -242,12 +251,10 @@ func initWindow() (window *glfw.Window, err error) {
 		window.SetPosition(0, 0)
 	} else {
 		glfw.WindowHint(glfw.Decorated, 1)
-		println("Trying to create window")
 		window, err = glfw.CreateWindow(int(ratio*480), 480, "Golang Asteroids!", nil, nil)
 		if err != nil {
 			return nil, err
 		}
-		println("Created window!")
 		window.SetPosition(videomode.Width/2-320, videomode.Height/2-240)
 	}
 
@@ -302,41 +309,40 @@ func isGameLost() bool {
 	return len(shipMap)==0
 }
 
-func initGame() *glfw.Window {
-	window, err := initWindow()
-	if err != nil {
-		panic(err)
-	}
-
-	resetGame()
-
-	return window
-}
-
 func NextAsteroidId() int {
 	id := (AsteroidCounter << 5) | PlayerId
 	AsteroidCounter += 1
 	return id
 }
 
-func resetGame() {
+func resetGame(generateAsteroids bool) {
 	// init ship
-	shipId=0
+	shipId=PlayerId
+	println("My player ID:", PlayerId)
 
 	// create ship/player map
 	shipMap=make(map[int]*Ship)
 
-
-	//create new hip
+	//create new ship
 	ship = NewShip(gameWidth/2,gameHeight/2, 0, 0.01)
 	
+	println("RESETTING GAME WITH PLAYER ID", PlayerId)
+
 	//add to player list
-	shipMap[shipId]=ship
+	shipMap[shipId] = ship
+
+	println("Instantiated ship map with the folowing data")
+	for k, v := range(shipMap) {
+		println("Ship", k, "x,y", v.PosX, v.PosY)
+	}
+
+	asteroids = make(map[int]*Asteroid)
 
 	// create a couple of random asteroids
-	asteroids = make(map[int]*Asteroid)
-	for i := 1; i <= difficulty; i++ {
-		CreateAsteroid(2+rng.Float64()*8, 3)
+	if generateAsteroids {
+		for i := 1; i <= difficulty; i++ {
+			CreateAsteroid(2+rng.Float64()*8, 3)
+		}
 	}
 
 	bullets = nil
@@ -377,7 +383,7 @@ func addScore(value int) {
 };
 
 func shareGameState() {
-	gameNode.SharePlayer(ship.PosX, ship.PosY)
+	gameNode.SharePlayer(ship)
 	gameNode.ShareAsteroids(asteroids)
 }
 
@@ -386,11 +392,12 @@ func updateGameState() {
 	for i, v := range(asteroids2) {
 		asteroid, ok := asteroids[i]
 		// Insert into map.
-		if !ok {
+		if !ok && v.Lives > 0 {
 			asteroid = NewAsteroid(v.PosX, v.PosY, v.Angle, v.TurnRate, 
 				v.VelocityX, v.VelocityY, v.SizeRatio, v.Lives)
+			asteroid.Id = i
 			asteroids[i] = asteroid
-		} else {
+		} else if v.Lives > 0 {
 			// Update existing asteroid.
 			asteroids[i].PosX = v.PosX
 			asteroids[i].PosY = v.PosY
@@ -400,10 +407,10 @@ func updateGameState() {
 			asteroids[i].VelocityX = v.VelocityX
 			asteroids[i].SizeRatio = v.SizeRatio
 			asteroids[i].AccelerationRate = v.AccelerationRate
-			if asteroids[i].Lives != v.Lives {
-				println("Before: ", asteroids[i].Lives, "After", v.Lives)
-			}
 			asteroids[i].Lives = v.Lives
+		} else if v.Lives == 0 {
+			// Delete asteroid.
+			delete(asteroids, i)
 		}
 	}
 }
@@ -411,21 +418,34 @@ func updateGameState() {
 
 //check ship map and update locations in map, delete if dead
 func updateShipLocation(){
+	println("Map has a total of", len(shipMap), "players")
 	paxosShips:=gameNode.GetPlayers()
 	for shipId, ship := range paxosShips {
-		_,ok:=shipMap[shipId]
+		existingShip, ok:=shipMap[shipId]
 
-    	if ok && ship.IsAlive()==false {
-    		delete(paxosShips,shipId)
-    	}else if ok{
+    	if ok && !ship.IsAlive() {
+    		println("Ship", shipId, "just died, removing from map.")
+    		existingShip.Destroy()
+    		delete(shipMap,shipId)
+    	} else if ok {
+    		println("Ship", shipId, "is being updated")
     		shipMap[shipId].PosX=ship.PosX
     		shipMap[shipId].PosY=ship.PosY
     		shipMap[shipId].Angle=ship.Angle
     		shipMap[shipId].VelocityX=ship.VelocityX
     		shipMap[shipId].VelocityY=ship.VelocityY
     		shipMap[shipId].TurnRate=ship.TurnRate
-    		shipMap[shipId].accelerate=ship.accelerate
-    		shipMap[shipId].MaxVelocity=ship.MaxVelocity
+    		shipMap[shipId].AccelerationRate=ship.AccelerationRate
+    	} else if ship.IsAlive() {
+    		println("Ship", shipId, "was not in our map.")
+			shipMap[shipId] = NewShip(gameWidth/2, gameHeight/2, 0, 0.01)
+    		shipMap[shipId].PosX=ship.PosX
+    		shipMap[shipId].PosY=ship.PosY
+    		shipMap[shipId].Angle=ship.Angle
+    		shipMap[shipId].VelocityX=ship.VelocityX
+    		shipMap[shipId].VelocityY=ship.VelocityY
+    		shipMap[shipId].TurnRate=ship.TurnRate
+    		shipMap[shipId].AccelerationRate=ship.AccelerationRate
     	}
 	}
 }
