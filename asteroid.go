@@ -8,6 +8,7 @@ type Asteroid struct {
 	Entity
 	SizeRatio float64
 	Lives     int
+//	ID	string	
 }
 
 func NewAsteroid(x, y, angle, turnrate, vX, vY, size float64, lives int) *Asteroid {
@@ -57,6 +58,7 @@ func (ast *Asteroid) CreateChild() {
 }
 
 func CreateAsteroid(size float64, lives int) {
+
 	// avoid creating asteroid too close to ship/player starting position..
 	var x float64 = 0
 	if rng.Float64() > 0.5 {

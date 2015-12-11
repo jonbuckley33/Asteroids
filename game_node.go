@@ -123,11 +123,57 @@ func (gs *GameNode) InitializeGame() {
 	}
 }
 
-func (gs *GameNode) SharePlayerLocation(x, y float64) {
-	encodedCoords := fmt.Sprintf("(%v,%v)", x, y)
-	encodedKey := fmt.Sprintf("player_%v_location", gs.playerId)
-	gs.MakeProposal(encodedKey, encodedCoords)
+
+
+//Send player information to paxos nodes
+func (gs *GameNode) SharePlayer(x, y float64) {
+	for i, players := range(shipMap) {
+		if x==players.PosX && y==players.PosY {
+			playerKey := fmt.Sprintf("player_%v", i)
+			playerPos := fmt.Sprintf("(%v,%v,%v,%v,%v,%v,%v,%v,%v)", 
+				players.PosX, players.PosY, players.Angle,
+				players.VelocityX, players.VelocityY,
+				players.TurnRate, players.AccelerationRate,players.MaxVelocity,players.IsAlive())
+			gs.MakeProposal(playerKey, playerPos)			
+		}		
+	}
 }
+
+
+//Get player info from paxos nodes
+func (gs *GameNode) GetPlayers() map[int]*Ship{
+	m := make(map[int]*Ship)
+
+	for id := range(gs.playerAddresses) {
+		query := fmt.Sprintf("player_%v", id)
+		posString, err := gs.GetValue(query)
+
+		// Only worry about players who we have positions for.
+		if err == nil {
+			var x, y,angle,vX,vY,turnRate,maxVelocity float64
+			var isAlive,accelRate bool
+
+			fmt.Sscanf(posString, "(%v,%v,%v,%v,%v,%v,%v,%v,%v)", &x, &y,&angle,&vX,&vY,&turnRate,&accelRate,&maxVelocity,&isAlive)
+			
+			newShip:=new(Ship)
+
+			newShip.PosX=x
+			newShip.PosY=y
+			newShip.Angle=angle
+			newShip.VelocityX=vX
+			newShip.VelocityY=vY
+			newShip.TurnRate=turnRate
+			newShip.accelerate=accelRate
+			newShip.MaxVelocity=maxVelocity
+			newShip.isAlive=isAlive
+
+			m[id] = newShip
+		}
+	}
+
+	return m
+}
+
 
 // Gets the hostports of all of the players registered with the game
 // server located at "server". 
@@ -151,6 +197,29 @@ func (gs *GameNode) GetPlayerAddresses(server string) (map[int]string, error) {
 	return vals, nil
 }
 
+
+//Get ship velocities
+func (gs *GameNode) GetPlayerVelocities() map[int][]int {
+	m := make(map[int][]int)
+
+	for id := range(gs.playerAddresses) {
+		query := fmt.Sprintf("player_%v_velocity", id)
+		posString, err := gs.GetValue(query)
+
+		// Only worry about players who we have velocities for.
+		if err == nil {
+			var Vx, Vy int
+			fmt.Sscanf(posString, "(%v,%v)", &Vx, &Vy)
+			arr := []int{Vx, Vy}
+
+			m[id] = arr
+		}
+	}
+
+	return m
+}
+
+
 // Returns the positions of every known player with a map of arrays
 // where i -> [x, y] for player i at location x, y
 func (gs *GameNode) GetPlayerLocations() map[int][]int {
@@ -173,7 +242,4 @@ func (gs *GameNode) GetPlayerLocations() map[int][]int {
 	return m
 }
 
-/*func (gs *GameNode) SaveAsteroidLocations(asteroids []byte){
-	_, err := gs.MakeProposal("asteroids", asteroids(string))
-}*/
 

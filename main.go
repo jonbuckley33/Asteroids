@@ -18,8 +18,10 @@ import (
 )
 
 var (
-	ship           *Ship
-	Ships 		   []*Ship
+	ship           *Ship //create intiail main player ship
+	shipMap		   map[int]*Ship //holds all the players/ships on the board
+	shipId			int //used to store player/ship info in paxos
+
 	bullets        []*Bullet
 	torpedos       []*Torpedo
 	mines          []*Mine
@@ -92,18 +94,15 @@ func main() {
 func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 	//fmt.Printf("%v, %v, %v, %v\n", key, scancode, action, mods)
 
-
-	//create randome ship
+	//create random ship
 	if key == glfw.KeyU && action == glfw.Press { //&& mods == glfw.ModAlt {
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
 		x:=r.Float64()
 		y:=r.Float64()
-		fmt.Println("RANDOM R,",x,y)
 		shipNew:=new(Ship)
 		shipNew = NewShip(gameWidth/x, gameHeight/y, 0, 0.01)
-
-		Ships=append(Ships,shipNew)
-		fmt.Println("SHIPS:", Ships)
+		shipId+=1
+		shipMap[shipId]=shipNew
 	}
 
 
@@ -294,11 +293,11 @@ func switchWireframe() {
 }
 
 func isGameWon() bool {
-	return len(asteroids) == 0 && len(Ships)>0
+	return len(asteroids) == 0 && len(shipMap)>0
 }
 
 func isGameLost() bool {
-	return len(Ships)==0
+	return len(shipMap)==0
 }
 
 func initGame() *glfw.Window {
@@ -314,12 +313,17 @@ func initGame() *glfw.Window {
 
 func resetGame() {
 	// init ship
+	shipId=0
 
-	Ships=Ships[:0]
+	// create ship/player map
+	shipMap=make(map[int]*Ship)
 
 
+	//create new hip
 	ship = NewShip(gameWidth/2,gameHeight/2, 0, 0.01)
-	Ships=append(Ships,ship)
+	
+	//add to player list
+	shipMap[shipId]=ship
 
 	// create a couple of random asteroids
 	asteroids = nil
@@ -362,18 +366,33 @@ func addScore(value int) {
 	if ship.IsAlive() {
 		score = score + value
 	}
-}
+};
 
 func shareGameState() {
-	gameNode.SharePlayerLocation(ship.PosX, ship.PosY)
-	//share velocity
+	gameNode.SharePlayer(ship.PosX, ship.PosY)
 }
 
 
-//update ship locations functions
+//check ship map and update locations in map, delete if dead
+func updateShipLocation(){
+	paxosShips:=gameNode.GetPlayers()
+	for shipId, ship := range paxosShips {
+		_,ok:=shipMap[shipId]
 
-
-
+    	if ok && ship.IsAlive()==false {
+    		delete(paxosShips,shipId)
+    	}else if ok{
+    		shipMap[shipId].PosX=ship.PosX
+    		shipMap[shipId].PosY=ship.PosY
+    		shipMap[shipId].Angle=ship.Angle
+    		shipMap[shipId].VelocityX=ship.VelocityX
+    		shipMap[shipId].VelocityY=ship.VelocityY
+    		shipMap[shipId].TurnRate=ship.TurnRate
+    		shipMap[shipId].accelerate=ship.accelerate
+    		shipMap[shipId].MaxVelocity=ship.MaxVelocity
+    	}
+	}
+}
 
 func runGameLoop(window *glfw.Window) {
 	for !window.ShouldClose() {
@@ -385,7 +404,7 @@ func runGameLoop(window *glfw.Window) {
 
 		shareGameState()
 
-		//update ship locations function
+		updateShipLocation()
 
 
 		// println("------------------")
@@ -446,9 +465,10 @@ func runGameLoop(window *glfw.Window) {
 
 func drawObjects() {
 
-	for _,ships:=range Ships{
+	for _,ships:=range shipMap{
 		ships.Draw(false)
 	}
+
 	for _, bullet := range bullets {
 		bullet.Draw(false)
 	}
@@ -519,7 +539,7 @@ func updateObjects() {
 	}
 	bigExplosions = bigExplosions2
 
-	for _,ships:=range Ships{
+	for _,ships:=range shipMap{
 		ships.Update()
 	}
 	// call their update func
@@ -568,11 +588,12 @@ func hitDetection() {
 				asteroid.Destroy()
 			}
 		}
-		for i,ships:=range Ships{
+		for i,ships:=range shipMap{
 			if ships.IsAlive() && IsColliding(&asteroid.Entity, &ships.Entity) {
 				asteroid.Destroy()
 				ships.Destroy()
-				Ships= append(Ships[:i], Ships[i+1:]...)
+				delete(shipMap,i)
+				//Ships= append(Ships[:i], Ships[i+1:]...)
 			}
 		}	
 	}
@@ -584,10 +605,10 @@ func hitDetection() {
 	// }
 	for _, bigExplosion := range bigExplosions {
 
-		for i,ships:=range Ships{
+		for i,ships:=range shipMap{
 			if ships.IsAlive() && IsColliding(&bigExplosion.Entity, &ships.Entity) {
 				ships.Destroy()
-				Ships= append(Ships[:i], Ships[i+1:]...)
+				delete(shipMap,i)
 
 			}
 		}
