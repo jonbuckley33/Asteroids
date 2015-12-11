@@ -21,11 +21,13 @@ var (
 	ship           *Ship //create intiail main player ship
 	shipMap		   map[int]*Ship //holds all the players/ships on the board
 	shipId			int //used to store player/ship info in paxos
+	PlayerId	   int
 
 	bullets        []*Bullet
 	torpedos       []*Torpedo
 	mines          []*Mine
-	asteroids      []*Asteroid
+	asteroids      map[int]*Asteroid
+	AsteroidCounter int
 	explosions     []*Explosion
 	bigExplosions  []*BigExplosion
 	gameWidth      float64
@@ -68,14 +70,14 @@ func main() {
     		panic("Could not make game client")
     	}
     } else {
-    	println("GOT THIS FAR")
     	gn, err := NewGameServer(*myHostPort)
-    	println("GOT THIS FAR TOO!")
     	gameNode = gn
     	if err != nil {
     		panic("Could not start game server")
     	} 
     }
+
+	PlayerId = gameNode.PlayerId    
 
 	runtime.LockOSThread()
 	glfw.SetErrorCallback(errorCallback)
@@ -311,6 +313,12 @@ func initGame() *glfw.Window {
 	return window
 }
 
+func NextAsteroidId() int {
+	id := (AsteroidCounter << 5) | PlayerId
+	AsteroidCounter += 1
+	return id
+}
+
 func resetGame() {
 	// init ship
 	shipId=0
@@ -326,7 +334,7 @@ func resetGame() {
 	shipMap[shipId]=ship
 
 	// create a couple of random asteroids
-	asteroids = nil
+	asteroids = make(map[int]*Asteroid)
 	for i := 1; i <= difficulty; i++ {
 		CreateAsteroid(2+rng.Float64()*8, 3)
 	}
@@ -370,6 +378,34 @@ func addScore(value int) {
 
 func shareGameState() {
 	gameNode.SharePlayer(ship.PosX, ship.PosY)
+	gameNode.ShareAsteroids(asteroids)
+}
+
+func updateGameState() {
+	asteroids2 := gameNode.GetAsteroids()
+	for i, v := range(asteroids2) {
+		asteroid, ok := asteroids[i]
+		// Insert into map.
+		if !ok {
+			asteroid = NewAsteroid(v.PosX, v.PosY, v.Angle, v.TurnRate, 
+				v.VelocityX, v.VelocityY, v.SizeRatio, v.Lives)
+			asteroids[i] = asteroid
+		} else {
+			// Update existing asteroid.
+			asteroids[i].PosX = v.PosX
+			asteroids[i].PosY = v.PosY
+			asteroids[i].Angle = v.Angle
+			asteroids[i].TurnRate = v.TurnRate
+			asteroids[i].VelocityY = v.VelocityY
+			asteroids[i].VelocityX = v.VelocityX
+			asteroids[i].SizeRatio = v.SizeRatio
+			asteroids[i].AccelerationRate = v.AccelerationRate
+			if asteroids[i].Lives != v.Lives {
+				println("Before: ", asteroids[i].Lives, "After", v.Lives)
+			}
+			asteroids[i].Lives = v.Lives
+		}
+	}
 }
 
 
@@ -405,6 +441,9 @@ func runGameLoop(window *glfw.Window) {
 		shareGameState()
 
 		updateShipLocation()
+		
+		updateGameState()
+
 
 
 		// println("------------------")
@@ -515,10 +554,10 @@ func updateObjects() {
 	}
 	mines = mines2
 
-	var asteroids2 []*Asteroid
+	asteroids2 := make(map[int]*Asteroid)
 	for _, asteroid := range asteroids {
 		if asteroid.IsAlive() {
-			asteroids2 = append(asteroids2, asteroid)
+			asteroids2[asteroid.Id] = asteroid
 		}
 	}
 	asteroids = asteroids2

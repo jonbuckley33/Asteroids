@@ -15,14 +15,14 @@ type GameNode struct {
 	node paxos.PaxosNode
 	address string
 	playerAddresses map[int]string
-	playerId int
+	PlayerId int
 }
 
 func NewGameServer(hostAddress string) (*GameNode, error) {
 	gs := new(GameNode)
 	gs.address = hostAddress
 	gs.playerAddresses = make(map[int]string)
-	gs.playerId = 0
+	gs.PlayerId = 0
 
 	gs.playerAddresses[0] = hostAddress
 
@@ -50,17 +50,17 @@ func NewGameClient(myHostAddress, serverHostAddress string) (*GameNode, error) {
 	}
 
 	gs.playerAddresses = playerAddresses
-	gs.playerId = len(gs.playerAddresses)
+	gs.PlayerId = len(gs.playerAddresses)
 
 	// Make a new node as a "replacement" node.
 	node, err := paxos.NewPaxosNode(myHostAddress, gs.playerAddresses,
-		gs.playerId, gs.playerId, 5, true)
+		gs.PlayerId, gs.PlayerId, 5, true)
 	if err != nil {
 		return nil, err
 	}
 	gs.node = node
 
-	gs.MakeProposal("num_players", strconv.Itoa(gs.playerId))
+	gs.MakeProposal("num_players", strconv.Itoa(gs.PlayerId + 1))
 
 	return gs, nil
 }
@@ -124,7 +124,6 @@ func (gs *GameNode) InitializeGame() {
 }
 
 
-
 //Send player information to paxos nodes
 func (gs *GameNode) SharePlayer(x, y float64) {
 	for i, players := range(shipMap) {
@@ -172,6 +171,64 @@ func (gs *GameNode) GetPlayers() map[int]*Ship{
 	}
 
 	return m
+}
+
+func (gs *GameNode) ShareAsteroids(asteroids map[int]*Asteroid) {
+	counter := 0
+	asteroidIds := make([]int, len(asteroids))
+	for i, asteroid := range(asteroids) {
+		// Add id to map.
+		asteroidIds[counter] = asteroid.Id
+		counter += 1
+
+		// Share asteroid data.
+		asteroidKey := fmt.Sprintf("asteroid_%v", i)
+		asteroidPos := fmt.Sprintf("(%v,%v,%v,%v,%v,%v,%v,%v,%v)", 
+			asteroid.PosX, asteroid.PosY, asteroid.Angle,
+			asteroid.VelocityX, asteroid.VelocityY,
+			asteroid.TurnRate, asteroid.AccelerationRate,
+			asteroid.SizeRatio, asteroid.Lives)
+		gs.MakeProposal(asteroidKey, asteroidPos)
+	}
+
+	asteroidIdEncoded, _ := json.Marshal(asteroidIds)
+	gs.MakeProposal("asteroid_ids", string(asteroidIdEncoded))
+}
+
+func (gs *GameNode) GetAsteroids() map[int]*Asteroid {
+	// Get list of IDs of asteroids.
+	var asteroidIds []int
+	asteroidIdsEncoded, _ := gs.GetValue("asteroid_ids")
+
+	json.Unmarshal([]byte(asteroidIdsEncoded), &asteroidIds)
+	
+	// Mapping from ID to asteroid.
+	asteroids := make(map[int]*Asteroid)
+	for _, id := range(asteroidIds) {
+		asteroidKey := fmt.Sprintf("asteroid_%v", id)
+		asteroidEncoded, _ := gs.GetValue(asteroidKey)
+
+		var posX, posY, angle, turnRate, vX, vY, acceleration, size float64
+		var lives int
+
+		fmt.Sscanf(asteroidEncoded, "(%v,%v,%v,%v,%v,%v,%v,%v,%v)", &posX, &posY,
+			&angle, &vX, &vY, &turnRate, &acceleration, &size, &lives)
+
+		asteroid := new(Asteroid)
+		asteroid.PosX = posX
+		asteroid.PosY = posY
+		asteroid.Angle = angle
+		asteroid.TurnRate = turnRate
+		asteroid.VelocityX = vX
+		asteroid.VelocityY = vY
+		asteroid.SizeRatio = size
+		asteroid.Id = id
+		asteroid.Lives = lives
+
+		asteroids[id] = asteroid
+	}
+
+	return asteroids
 }
 
 
