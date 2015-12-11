@@ -318,7 +318,6 @@ func NextAsteroidId() int {
 func resetGame(generateAsteroids bool) {
 	// init ship
 	shipId=PlayerId
-	println("My player ID:", PlayerId)
 
 	// create ship/player map
 	shipMap=make(map[int]*Ship)
@@ -411,17 +410,14 @@ func updateGameState() {
 
 //check ship map and update locations in map, delete if dead
 func updateShipLocation(){
-	println("Map has a total of", len(shipMap), "players")
 	paxosShips:=gameNode.GetPlayers()
 	for shipId, ship := range paxosShips {
 		existingShip, ok:=shipMap[shipId]
 
     	if ok && !ship.IsAlive() {
-    		println("Ship", shipId, "just died, removing from map.")
     		existingShip.Destroy()
     		delete(shipMap,shipId)
     	} else if ok {
-    		println("Ship", shipId, "is being updated")
     		shipMap[shipId].PosX=ship.PosX
     		shipMap[shipId].PosY=ship.PosY
     		shipMap[shipId].Angle=ship.Angle
@@ -430,7 +426,6 @@ func updateShipLocation(){
     		shipMap[shipId].TurnRate=ship.TurnRate
     		shipMap[shipId].AccelerationRate=ship.AccelerationRate
     	} else if ship.IsAlive() {
-    		println("Ship", shipId, "was not in our map.")
 			shipMap[shipId] = NewShip(gameWidth/2, gameHeight/2, 0, 0.01)
     		shipMap[shipId].PosX=ship.PosX
     		shipMap[shipId].PosY=ship.PosY
@@ -456,13 +451,6 @@ func runGameLoop(window *glfw.Window) {
 		updateShipLocation()
 		
 		updateGameState()
-
-
-
-		// println("------------------")
-		// for k, v := range(gameNode.GetPlayerLocations()) {
-		// 	fmt.Printf("Player %v: (%v, %v)", k, v[0], v[1])
-		// }
 
 		// ---------------------------------------------------------------
 		// draw calls
