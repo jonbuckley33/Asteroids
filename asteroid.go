@@ -8,6 +8,7 @@ type Asteroid struct {
 	Entity
 	SizeRatio float64
 	Lives     int
+	Id        int
 }
 
 func NewAsteroid(x, y, angle, turnrate, vX, vY, size float64, lives int) *Asteroid {
@@ -33,7 +34,8 @@ func NewAsteroid(x, y, angle, turnrate, vX, vY, size float64, lives int) *Astero
 			Color{1, 1, 0.9},
 		},
 	}
-	return &Asteroid{*NewEntity(shape, x, y, angle, turnrate, vX, vY, 0, 5), size, lives}
+	id := NextAsteroidId()
+	return &Asteroid{*NewEntity(shape, x, y, angle, turnrate, vX, vY, 0, 5), size, lives, id}
 }
 
 func (ast *Asteroid) Destroy() {
@@ -53,7 +55,7 @@ func (ast *Asteroid) CreateChild() {
 	} else {
 		asteroid.RotateLeft(true)
 	}
-	asteroids = append(asteroids, asteroid)
+	asteroids[asteroid.Id] = asteroid
 }
 
 func CreateAsteroid(size float64, lives int) {
@@ -73,5 +75,6 @@ func CreateAsteroid(size float64, lives int) {
 	} else {
 		asteroid.RotateLeft(true)
 	}
-	asteroids = append(asteroids, asteroid)
+
+	asteroids[asteroid.Id] = asteroid
 }
