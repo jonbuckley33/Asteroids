@@ -7,9 +7,11 @@ package main
 import (
 	"errors"
 	"fmt"
+	"flag"
 	"math/rand"
 	"runtime"
 	"time"
+	"log"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	glfw "github.com/go-gl/glfw3/v3.0/glfw"
@@ -17,6 +19,7 @@ import (
 
 var (
 	ship           *Ship
+	Ships 		   []*Ship
 	bullets        []*Bullet
 	torpedos       []*Torpedo
 	mines          []*Mine
@@ -37,6 +40,7 @@ var (
 	showHighscore  bool    = true
 	difficulty     int     = 6
 	debug          bool    = true
+	gameNode	   *GameNode
 )
 
 func errorCallback(err glfw.ErrorCode, desc string) {
@@ -44,6 +48,33 @@ func errorCallback(err glfw.ErrorCode, desc string) {
 }
 
 func main() {
+    host := flag.String("server", "", "the host:port of the game server")
+    myHostPort := flag.String("hostAt", "", "port at which to start a game server")
+    flag.Parse()
+
+    // Default
+    if *host == "" && *myHostPort == "" {
+    	log.Fatal("Please specify a host or a port at which to serve a game.")
+    }
+
+    // We are a client of a game server. 
+    if *host != "" {
+    	*myHostPort = ":10029"
+    	gn, err := NewGameClient(*myHostPort, *host)
+    	gameNode = gn
+    	if err != nil {
+    		panic("Could not make game client")
+    	}
+    } else {
+    	println("GOT THIS FAR")
+    	gn, err := NewGameServer(*myHostPort)
+    	println("GOT THIS FAR TOO!")
+    	gameNode = gn
+    	if err != nil {
+    		panic("Could not start game server")
+    	} 
+    }
+
 	runtime.LockOSThread()
 	glfw.SetErrorCallback(errorCallback)
 
@@ -60,6 +91,22 @@ func main() {
 
 func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 	//fmt.Printf("%v, %v, %v, %v\n", key, scancode, action, mods)
+
+
+	//create randome ship
+	if key == glfw.KeyU && action == glfw.Press { //&& mods == glfw.ModAlt {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		x:=r.Float64()
+		y:=r.Float64()
+		fmt.Println("RANDOM R,",x,y)
+		shipNew:=new(Ship)
+		shipNew = NewShip(gameWidth/x, gameHeight/y, 0, 0.01)
+
+		Ships=append(Ships,shipNew)
+		fmt.Println("SHIPS:", Ships)
+	}
+
+
 
 	if key == glfw.KeyEscape && action == glfw.Press {
 		window.SetShouldClose(true)
@@ -194,10 +241,12 @@ func initWindow() (window *glfw.Window, err error) {
 		window.SetPosition(0, 0)
 	} else {
 		glfw.WindowHint(glfw.Decorated, 1)
+		println("Trying to create window")
 		window, err = glfw.CreateWindow(int(ratio*480), 480, "Golang Asteroids!", nil, nil)
 		if err != nil {
 			return nil, err
 		}
+		println("Created window!")
 		window.SetPosition(videomode.Width/2-320, videomode.Height/2-240)
 	}
 
@@ -245,11 +294,11 @@ func switchWireframe() {
 }
 
 func isGameWon() bool {
-	return len(asteroids) == 0 && ship.IsAlive()
+	return len(asteroids) == 0 && len(Ships)>0
 }
 
 func isGameLost() bool {
-	return !ship.IsAlive()
+	return len(Ships)==0
 }
 
 func initGame() *glfw.Window {
@@ -265,7 +314,12 @@ func initGame() *glfw.Window {
 
 func resetGame() {
 	// init ship
-	ship = NewShip(gameWidth/2, gameHeight/2, 0, 0.01)
+
+	Ships=Ships[:0]
+
+
+	ship = NewShip(gameWidth/2,gameHeight/2, 0, 0.01)
+	Ships=append(Ships,ship)
 
 	// create a couple of random asteroids
 	asteroids = nil
@@ -310,6 +364,17 @@ func addScore(value int) {
 	}
 }
 
+func shareGameState() {
+	gameNode.SharePlayerLocation(ship.PosX, ship.PosY)
+	//share velocity
+
+
+}
+
+
+//update ship locations functions
+
+
 func runGameLoop(window *glfw.Window) {
 	for !window.ShouldClose() {
 		// update objects
@@ -317,6 +382,16 @@ func runGameLoop(window *glfw.Window) {
 
 		// hit detection
 		hitDetection()
+
+		shareGameState()
+
+		//update ship locations function
+
+
+		// println("------------------")
+		// for k, v := range(gameNode.GetPlayerLocations()) {
+		// 	fmt.Printf("Player %v: (%v, %v)", k, v[0], v[1])
+		// }
 
 		// ---------------------------------------------------------------
 		// draw calls
@@ -370,7 +445,10 @@ func runGameLoop(window *glfw.Window) {
 }
 
 func drawObjects() {
-	ship.Draw(false)
+
+	for _,ships:=range Ships{
+		ships.Draw(false)
+	}
 	for _, bullet := range bullets {
 		bullet.Draw(false)
 	}
@@ -441,8 +519,10 @@ func updateObjects() {
 	}
 	bigExplosions = bigExplosions2
 
+	for _,ships:=range Ships{
+		ships.Update()
+	}
 	// call their update func
-	ship.Update()
 	for _, bullet := range bullets {
 		bullet.Update()
 	}
@@ -488,10 +568,14 @@ func hitDetection() {
 				asteroid.Destroy()
 			}
 		}
-		if ship.IsAlive() && IsColliding(&asteroid.Entity, &ship.Entity) {
-			asteroid.Destroy()
-			ship.Destroy()
+		for i,ships:=range Ships{
+			if ships.IsAlive() && IsColliding(&asteroid.Entity, &ships.Entity) {
+				asteroid.Destroy()
+				ships.Destroy()
+				Ships= append(Ships[:i], Ships[i+1:]...)
+			}
 		}
+		
 	}
 	// for _, torpedo := range torpedos {
 	// 	if ship.IsAlive() && IsColliding(&torpedo.Entity, &ship.Entity) {
@@ -500,14 +584,22 @@ func hitDetection() {
 	// 	}
 	// }
 	for _, bigExplosion := range bigExplosions {
-		if ship.IsAlive() && IsColliding(&bigExplosion.Entity, &ship.Entity) {
-			ship.Destroy()
+
+		for i,ships:=range Ships{
+			if ships.IsAlive() && IsColliding(&bigExplosion.Entity, &ships.Entity) {
+				ships.Destroy()
+				Ships= append(Ships[:i], Ships[i+1:]...)
+
+			}
+		for _, mine := range mines {
+			if ship.IsAlive() && IsColliding(&mine.Entity, &ship.Entity) {
+				mine.Destroy()
+				ship.Destroy()
+			}
 		}
 	}
-	for _, mine := range mines {
-		if ship.IsAlive() && IsColliding(&mine.Entity, &ship.Entity) {
-			mine.Destroy()
-			ship.Destroy()
-		}
-	}
+}
+			
+	
+	
 }
