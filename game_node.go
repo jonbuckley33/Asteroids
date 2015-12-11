@@ -51,7 +51,6 @@ func NewGameClient(myHostAddress, serverHostAddress string) (*GameNode, error) {
 
 	gs.playerAddresses = playerAddresses
 	gs.PlayerId = len(gs.playerAddresses)
-	println("My player ID is", gs.PlayerId)
 	gs.playerAddresses[strconv.Itoa(gs.PlayerId)] = myHostAddress
 
 	hostMap := make(map[int]string)
@@ -146,7 +145,6 @@ func (gs *GameNode) InitializeGame() {
 
 //Send player information to paxos nodes
 func (gs *GameNode) SharePlayer(ship *Ship) {
-	println("Sharing ship", PlayerId)
 	playerKey := fmt.Sprintf("player_%v", PlayerId)
 	playerPos := fmt.Sprintf("(%v,%v,%v,%v,%v,%v,%v,%v)", 
 		ship.PosX, ship.PosY, ship.Angle,
@@ -169,7 +167,6 @@ func (gs *GameNode) GetPlayers() map[int]*Ship{
 
 	m := make(map[int]*Ship)
 
-	println("We have", len(gs.playerAddresses), "players in our game")
 	for id := range(gs.playerAddresses) {
 		query := fmt.Sprintf("player_%v", id)
 		posString, err := gs.GetValue(query)
@@ -181,8 +178,6 @@ func (gs *GameNode) GetPlayers() map[int]*Ship{
 
 			fmt.Sscanf(posString, "(%v,%v,%v,%v,%v,%v,%v,%v)", &x,&y,&angle,&vX,&vY,&turnRate,&accelerationRate,&isAlive)
 			
-			println("Got ship", id, "with position", x, ",", y)
-
 			newShip:=new(Ship)
 
 			newShip.PosX=x

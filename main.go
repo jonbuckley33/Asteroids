@@ -326,15 +326,8 @@ func resetGame(generateAsteroids bool) {
 	//create new ship
 	ship = NewShip(gameWidth/2,gameHeight/2, 0, 0.01)
 	
-	println("RESETTING GAME WITH PLAYER ID", PlayerId)
-
 	//add to player list
 	shipMap[shipId] = ship
-
-	println("Instantiated ship map with the folowing data")
-	for k, v := range(shipMap) {
-		println("Ship", k, "x,y", v.PosX, v.PosY)
-	}
 
 	asteroids = make(map[int]*Asteroid)
 
