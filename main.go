@@ -18,9 +18,9 @@ import (
 )
 
 var (
-	ship           *Ship //create intiail main player ship
-	shipMap		   map[int]*Ship //holds all the players/ships on the board
-	shipId		   int //used to store player/ship info in paxos
+	ship           *Ship // Ship for this player.
+	shipMap		   map[int]*Ship // Holds all the players/ships on the board.
+	shipId		   int // Used to store player/ship info in paxos.
 	PlayerId	   int
 	isClient       bool
   
@@ -55,11 +55,14 @@ func errorCallback(err glfw.ErrorCode, desc string) {
 func main() {
     host := flag.String("server", "", "the host:port of the game server")
     myHostPort := flag.String("hostAt", "", "port at which to start a game server")
+   	clientPort := flag.String("myNodeAt", "", "port at which to start game client on")
     flag.Parse()
 
-    // Default
+    // Complain if flags weren't set.
     if *host == "" && *myHostPort == "" {
     	log.Fatal("Please specify a host or a port at which to serve a game.")
+    } else if *host != "" && *clientPort == "" {
+    	log.Fatal("You must specify a local port to host your client on with the -myNodeAt flag")
     }
 
 	runtime.LockOSThread()
@@ -70,6 +73,7 @@ func main() {
 	}
 	defer glfw.Terminate()
 
+	// Client or server of game?
  	isClient = *host != ""
 
 	var window *glfw.Window
@@ -78,12 +82,9 @@ func main() {
 		panic(err)
 	}
 
-	// If we make it this far, the game is stable.
-
-    // We are a client of a game server. 
+	// Attempt to construct GameNode.
     if isClient {
-    	*myHostPort = ":10029"
-    	gn, err := NewGameClient(*myHostPort, *host)
+    	gn, err := NewGameClient(*clientPort, *host)
     	gameNode = gn
     	if err != nil {
     		panic("Could not make game client")
@@ -97,16 +98,16 @@ func main() {
     }
 	PlayerId = gameNode.PlayerId    
 
+	// Initializes data structures.
     resetGame(!isClient)
 
+    // Start the main game loop.
 	runGameLoop(window)
 
 	fmt.Printf("Your highscore was %d points!\n", highscore)
 }
 
 func keyCallback(window *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-	//fmt.Printf("%v, %v, %v, %v\n", key, scancode, action, mods)
-
 	//create random ship
 	if key == glfw.KeyU && action == glfw.Press { //&& mods == glfw.ModAlt {
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -309,29 +310,35 @@ func isGameLost() bool {
 	return len(shipMap)==0
 }
 
+/* BEGIN CUSTOM CODE */
+
+// Gets a unique ID (paxos-wide) to assign to a new Asteroid.
 func NextAsteroidId() int {
 	id := (AsteroidCounter << 5) | PlayerId
 	AsteroidCounter += 1
 	return id
 }
 
+// Initializes a game. Generates new asteroids if
+// generateAsteroids is set to true. Note that clients
+// shouldn't generateAsteroids, only the master should.
 func resetGame(generateAsteroids bool) {
-	// init ship
+	// Init ship.
 	shipId=PlayerId
 
-	// create ship/player map
+	// Create ship/player map.
 	shipMap=make(map[int]*Ship)
 
-	//create new ship
+	// Create new ship.
 	ship = NewShip(gameWidth/2,gameHeight/2, 0, 0.01)
 	
-	//add to player list
+	// Add to player list.
 	shipMap[shipId] = ship
 
 	asteroids = make(map[int]*Asteroid)
 
-	// create a couple of random asteroids
 	if generateAsteroids {
+		// Create a couple of random asteroids
 		for i := 1; i <= difficulty; i++ {
 			CreateAsteroid(2+rng.Float64()*8, 3)
 		}
@@ -344,47 +351,23 @@ func resetGame(generateAsteroids bool) {
 	bigExplosions = nil
 }
 
-func drawHighScore() {
-	if score > highscore {
-		highscore = score
-	}
-	if showHighscore {
-		DrawString(10, fieldSize-32, 1, Color{0.5, 0.5, 0.5}, fmt.Sprintf("highscore: %d", highscore))
-	}
-}
-
-func drawCurrentScore() {
-	DrawString(10, fieldSize-20, 1, Color{1, 1, 1}, fmt.Sprintf("score: %d", score))
-}
-
-func drawWinningScreen() {
-	DrawString(fieldSize/2-20, fieldSize/2+10, 5, Color{1, 1, 1}, fmt.Sprintf("You won!"))
-	DrawString(fieldSize/2-120, fieldSize/2-20, 1.5, Color{1, 1, 1}, fmt.Sprintf("Press R to restart current level"))
-	DrawString(fieldSize/2-120, fieldSize/2-50, 1.5, Color{1, 1, 1}, fmt.Sprintf("Press N to advance to next difficulty level"))
-}
-
-func drawGameOverScreen() {
-	DrawString(fieldSize/2-20, fieldSize/2+10, 5, Color{1, 1, 1}, fmt.Sprintf("Game Over!"))
-	DrawString(fieldSize/2-120, fieldSize/2-20, 1.5, Color{1, 1, 1}, fmt.Sprintf("Press R to restart current level"))
-}
-
-func addScore(value int) {
-	if ship.IsAlive() {
-		score = score + value
-	}
-};
-
+// Share's current user information such as player position
+// and asteroid information. These calls propose values in
+// the Paxos ring.
 func shareGameState() {
 	gameNode.SharePlayer(ship)
 	gameNode.ShareAsteroids(asteroids)
 }
 
-func updateGameState() {
+// Queries paxos for the current asteroids and updates our
+// local state to reflect this.
+func updateAsteroids() {
+	// Get all asteroids from Paxos.
 	asteroids2 := gameNode.GetAsteroids()
 	for i, v := range(asteroids2) {
 		asteroid, ok := asteroids[i]
-		// Insert into map.
 		if !ok && v.Lives > 0 {
+			// New asteroid.
 			asteroid = NewAsteroid(v.PosX, v.PosY, v.Angle, v.TurnRate, 
 				v.VelocityX, v.VelocityY, v.SizeRatio, v.Lives)
 			asteroid.Id = i
@@ -407,17 +390,18 @@ func updateGameState() {
 	}
 }
 
-
-//check ship map and update locations in map, delete if dead
-func updateShipLocation(){
+// Queries paxos for the current players and updates local
+// state to reflect this.
+func updatePlayers(){
 	paxosShips:=gameNode.GetPlayers()
 	for shipId, ship := range paxosShips {
 		existingShip, ok:=shipMap[shipId]
-
     	if ok && !ship.IsAlive() {
+    		// Existing player died.
     		existingShip.Destroy()
     		delete(shipMap,shipId)
     	} else if ok {
+    		// Existing playe update.
     		shipMap[shipId].PosX=ship.PosX
     		shipMap[shipId].PosY=ship.PosY
     		shipMap[shipId].Angle=ship.Angle
@@ -426,6 +410,7 @@ func updateShipLocation(){
     		shipMap[shipId].TurnRate=ship.TurnRate
     		shipMap[shipId].AccelerationRate=ship.AccelerationRate
     	} else if ship.IsAlive() {
+    		// New player added.
 			shipMap[shipId] = NewShip(gameWidth/2, gameHeight/2, 0, 0.01)
     		shipMap[shipId].PosX=ship.PosX
     		shipMap[shipId].PosY=ship.PosY
@@ -438,19 +423,17 @@ func updateShipLocation(){
 	}
 }
 
+// Main game loop of code. Called once per game step.
 func runGameLoop(window *glfw.Window) {
 	for !window.ShouldClose() {
-		// update objects
 		updateObjects()
-
-		// hit detection
 		hitDetection()
 
+		// Upload data to Paxos.
 		shareGameState()
-
-		updateShipLocation()
-		
-		updateGameState()
+		// Pull data from Paxos.
+		updateAsteroids()
+		updatePlayers()
 
 		// ---------------------------------------------------------------
 		// draw calls
@@ -502,6 +485,39 @@ func runGameLoop(window *glfw.Window) {
 		}
 	}
 }
+
+/* END CUSTOM CODE */
+
+func drawHighScore() {
+	if score > highscore {
+		highscore = score
+	}
+	if showHighscore {
+		DrawString(10, fieldSize-32, 1, Color{0.5, 0.5, 0.5}, fmt.Sprintf("highscore: %d", highscore))
+	}
+}
+
+func drawCurrentScore() {
+	DrawString(10, fieldSize-20, 1, Color{1, 1, 1}, fmt.Sprintf("score: %d", score))
+}
+
+func drawWinningScreen() {
+	DrawString(fieldSize/2-20, fieldSize/2+10, 5, Color{1, 1, 1}, fmt.Sprintf("You won!"))
+	DrawString(fieldSize/2-120, fieldSize/2-20, 1.5, Color{1, 1, 1}, fmt.Sprintf("Press R to restart current level"))
+	DrawString(fieldSize/2-120, fieldSize/2-50, 1.5, Color{1, 1, 1}, fmt.Sprintf("Press N to advance to next difficulty level"))
+}
+
+func drawGameOverScreen() {
+	DrawString(fieldSize/2-20, fieldSize/2+10, 5, Color{1, 1, 1}, fmt.Sprintf("Game Over!"))
+	DrawString(fieldSize/2-120, fieldSize/2-20, 1.5, Color{1, 1, 1}, fmt.Sprintf("Press R to restart current level"))
+}
+
+func addScore(value int) {
+	if ship.IsAlive() {
+		score = score + value
+	}
+};
+
 
 func drawObjects() {
 

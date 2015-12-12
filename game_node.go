@@ -1,5 +1,7 @@
 package main
 
+// Authors: Jon Buckley & Kero Mikaeil.
+
 import (
 	"errors"
 	"fmt"
@@ -11,6 +13,8 @@ import (
 	"github.com/cmu440-F15/paxosapp/rpc/paxosrpc"
 )
 
+// Wrapper around Paxos to store and get commonly used values for
+// the game.
 type GameNode struct {
 	node paxos.PaxosNode
 	address string
@@ -18,6 +22,8 @@ type GameNode struct {
 	PlayerId int
 }
 
+// Start a GameNode as a server, ie., host a game.
+// hostAddress is the port to host the game one.
 func NewGameServer(hostAddress string) (*GameNode, error) {
 	gs := new(GameNode)
 	gs.address = hostAddress
@@ -39,6 +45,8 @@ func NewGameServer(hostAddress string) (*GameNode, error) {
 	return gs, nil
 }
 
+// Start a GameNode as a client, ie., connect to a hosted game.
+// serverHostAddress is the address of the server to connect to.
 func NewGameClient(myHostAddress, serverHostAddress string) (*GameNode, error) {
 	gs := new(GameNode)
 	gs.address = myHostAddress
@@ -53,6 +61,9 @@ func NewGameClient(myHostAddress, serverHostAddress string) (*GameNode, error) {
 	gs.PlayerId = len(gs.playerAddresses)
 	gs.playerAddresses[strconv.Itoa(gs.PlayerId)] = myHostAddress
 
+	// Convert string->string map into int->string map.
+	// Note that JSON won't let us encode int->string maps for
+	// some reason.
 	hostMap := make(map[int]string)
 	for k, v := range(gs.playerAddresses) {
 		i, _ := strconv.Atoi(k)
@@ -63,11 +74,8 @@ func NewGameClient(myHostAddress, serverHostAddress string) (*GameNode, error) {
 	node, err := paxos.NewPaxosNode(myHostAddress, hostMap,
 		gs.PlayerId, gs.PlayerId + 1, 5, true)
 	if err != nil {
-		// println("Could not connect to server:", err.Error())
 		return nil, err
-	} else {
-		// println("Connected to server")
-	}
+	} 
 	gs.node = node
 
 	// Update num players.
@@ -81,6 +89,7 @@ func NewGameClient(myHostAddress, serverHostAddress string) (*GameNode, error) {
 	return gs, nil
 }
 
+// Propose the value value for key key.
 func (gs *GameNode) MakeProposal(key string, value string) (string, error) {
 	// Get a proposal number.
 	Nargs := &paxosrpc.ProposalNumberArgs{
@@ -110,6 +119,7 @@ func (gs *GameNode) MakeProposal(key string, value string) (string, error) {
 	return propReply.V.(string), nil
 }
 
+// Retrieve value for the given key.
 func (gs *GameNode) GetValue(key string) (string, error) {
 	getArgs := &paxosrpc.GetValueArgs{
 		Key: key,
@@ -142,8 +152,8 @@ func (gs *GameNode) InitializeGame() {
 	}
 }
 
-
-//Send player information to paxos nodes
+// Send information for player ship to the rest of the
+// game nodes.
 func (gs *GameNode) SharePlayer(ship *Ship) {
 	playerKey := fmt.Sprintf("player_%v", PlayerId)
 	playerPos := fmt.Sprintf("(%v,%v,%v,%v,%v,%v,%v,%v)", 
@@ -159,9 +169,8 @@ func (gs *GameNode) SharePlayer(ship *Ship) {
 }
 
 
-//Get player info from paxos nodes
+// Get player information (ship positions) from paxos nodes.
 func (gs *GameNode) GetPlayers() map[int]*Ship{
-	// TODO
 	encodedPlayerAddresses, _ := gs.GetValue("player_addresses")
 	json.Unmarshal([]byte(encodedPlayerAddresses), &gs.playerAddresses)
 
@@ -197,6 +206,7 @@ func (gs *GameNode) GetPlayers() map[int]*Ship{
 	return m
 }
 
+// Share asteroid information.
 func (gs *GameNode) ShareAsteroids(asteroids map[int]*Asteroid) {
 	counter := 0
 	asteroidIds := make([]int, len(asteroids))
@@ -219,6 +229,7 @@ func (gs *GameNode) ShareAsteroids(asteroids map[int]*Asteroid) {
 	gs.MakeProposal("asteroid_ids", string(asteroidIdEncoded))
 }
 
+// Get asteroid information.
 func (gs *GameNode) GetAsteroids() map[int]*Asteroid {
 	// Get list of IDs of asteroids.
 	var asteroidIds []int
@@ -255,79 +266,28 @@ func (gs *GameNode) GetAsteroids() map[int]*Asteroid {
 	return asteroids
 }
 
-
 // Gets the hostports of all of the players registered with the game
 // server located at "server". 
 func (gs *GameNode) GetPlayerAddresses(server string) (map[string]string, error) {
-	// println("Trying to dial the server", server)
 	client, err := rpc.DialHTTP("tcp", server)
 	if err != nil {
-		// println("Could not open TCP connection to server", server)
 		return nil, err
-	} else {
-		// println("Opened TCP connection with server", server)
-	}
+	} 
 
+	// Get the value for player_addresses, located on the master.
 	getArgs := &paxosrpc.GetValueArgs{
 		Key: "player_addresses",
 	}
 	getReply := new(paxosrpc.GetValueReply)
-	// println("Trying to call Paxos Get Val")
 	client.Call("PaxosNode.GetValue", getArgs, getReply)
-	// println("Finished call")
+
+	// Decode the resulting map.
 	var vals map[string]string
 	json.Unmarshal([]byte(getReply.V.(string)), &vals)
 
 	client.Close()
 
 	return vals, nil
-}
-
-
-//Get ship velocities
-func (gs *GameNode) GetPlayerVelocities() map[int][]int {
-	m := make(map[int][]int)
-
-	for id := range(gs.playerAddresses) {
-		query := fmt.Sprintf("player_%v_velocity", id)
-		posString, err := gs.GetValue(query)
-
-		// Only worry about players who we have velocities for.
-		if err == nil {
-			var Vx, Vy int
-			fmt.Sscanf(posString, "(%v,%v)", &Vx, &Vy)
-			arr := []int{Vx, Vy}
-
-			i, _ := strconv.Atoi(id)
-			m[i] = arr
-		}
-	}
-
-	return m
-}
-
-
-// Returns the positions of every known player with a map of arrays
-// where i -> [x, y] for player i at location x, y
-func (gs *GameNode) GetPlayerLocations() map[int][]int {
-	m := make(map[int][]int)
-
-	for id := range(gs.playerAddresses) {
-		query := fmt.Sprintf("player_%v_location", id)
-		posString, err := gs.GetValue(query)
-
-		// Only worry about players who we have positions for.
-		if err == nil {
-			var x, y int
-			fmt.Sscanf(posString, "(%v,%v)", &x, &y)
-			arr := []int{x, y}
-
-			i, _ := strconv.Atoi(id)
-			m[i] = arr
-		}
-	}
-
-	return m
 }
 
 
